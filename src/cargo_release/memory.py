@@ -66,6 +66,7 @@ class AgentPlatformMemoryBank(LocalReviewedMemory):
                 ]
             },
             scope={"mission_id": snapshot.mission.id},
+            config={"wait_for_completion": False},
         )
         return str(operation.name)
 

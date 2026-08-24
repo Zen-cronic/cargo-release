@@ -139,7 +139,11 @@ class MissionOrchestrator:
                             "adjustment-monitor@1.0.0",
                             "persist_reviewed_release_context",
                             snapshot.mission.truth_mode,
-                            "STORED",
+                            (
+                                "SUBMITTED"
+                                if "/operations/" in memory_ref
+                                else "STORED"
+                            ),
                             {"memory_ref": memory_ref, "authority": "reviewed-facts-only"},
                         )
                     except Exception as error:
