@@ -1,0 +1,69 @@
+schema: cargo-release-service-inventory/v1
+region: us-central1
+truth_policy:
+  FIXTURE: local deterministic evidence or synthetic partner authority
+  ADAPTER: deployable code or configuration exists but no managed receipt is present
+  NATIVE: the request retained a Google-managed resource, event, operation, or trace ID
+services:
+  cargo-release-controller:
+    runtime: cloud-run
+    source: Dockerfile
+    identity: cargo-controller
+    ingress: internal-and-cloud-load-balancing
+    truth_gate: K_SERVICE + GOOGLE_CLOUD_PROJECT + CloudEvent headers + cloud trace context
+  cargo-release-web:
+    runtime: cloud-run
+    source: web/Dockerfile
+    identity: cargo-web
+    ingress: public-demo
+  cargo-release-coordinator:
+    runtime: agent-runtime
+    source: src/cargo_release/adk_agent.py
+    deployer: scripts/deploy_agent_runtime.py
+    identity_type: AGENT_IDENTITY
+    registry: automatic after Agent Runtime deployment
+  insurer-fixture:
+    runtime: cloud-run
+    app: cargo_release.partners:insurer_app
+    identity: cargo-insurer
+    data_truth: FIXTURE
+  adjuster-fixture:
+    runtime: cloud-run
+    app: cargo_release.partners:adjuster_app
+    identity: cargo-adjuster
+    data_truth: FIXTURE
+  carrier-fixture:
+    runtime: cloud-run
+    app: cargo_release.partners:carrier_app
+    identity: cargo-carrier
+    data_truth: FIXTURE
+managed_surfaces:
+  eventarc:
+    role: authenticated casualty trigger
+    current_local_mode: FIXTURE
+  agent_runtime:
+    role: ADK coordinator execution
+    current_local_mode: ADAPTER
+  memory_bank:
+    role: reviewed cross-session release context; never authoritative state
+    env: CARGO_RELEASE_MEMORY_BANK
+    current_local_mode: ADAPTER
+  agent_registry:
+    role: coordinator automatic registration plus partner REST discovery
+    current_local_mode: ADAPTER
+  agent_gateway:
+    role: identity-aware partner egress and policy enforcement
+    current_local_mode: ADAPTER
+  model_armor:
+    role: inline ingress/egress prompt-injection and sensitive-data screening
+    current_local_mode: ADAPTER
+  agent_observability:
+    role: OpenTelemetry topology, metrics, logs, and traces
+    current_local_mode: ADAPTER
+state_authority:
+  owner: deterministic controller
+  rule: model output and Memory Bank cannot mutate release state
+  release_prerequisites:
+    - adjuster acceptance receipt
+    - carrier release-order receipt
+    - carrier read-back receipt

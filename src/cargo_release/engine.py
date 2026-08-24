@@ -181,7 +181,10 @@ class CargoReleaseEngine:
         return self.store.snapshot(mission_id)
 
     def apply_partner_receipt(
-        self, receipt: PartnerReceipt, partner_identity: str
+        self,
+        receipt: PartnerReceipt,
+        partner_identity: str,
+        truth_mode: TruthMode = TruthMode.FIXTURE,
     ) -> tuple[MissionSnapshot, bool]:
         expected_identity = f"partner:{receipt.issuer}"
         if partner_identity != expected_identity:
@@ -234,7 +237,7 @@ class CargoReleaseEngine:
                 receipt.mission_id,
                 f"{receipt.issuer}-liaison@1.0.0",
                 "verify_partner_receipt",
-                TruthMode.FIXTURE,
+                truth_mode,
                 "VERIFIED",
                 {"kind": receipt.kind, "external_id": receipt.external_id, "digest": digest},
             )

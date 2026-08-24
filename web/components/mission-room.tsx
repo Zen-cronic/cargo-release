@@ -279,9 +279,21 @@ function MissionSpine({ snapshot }: { snapshot: MissionSnapshot }) { return <ol 
 function eventTitle(type: string) { return type.split("_").map((word) => word[0] + word.slice(1).toLowerCase()).join(" "); }
 
 function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, null>; snapshot: MissionSnapshot; onClose: () => void }) {
+  const memoryTrace = snapshot.traces.find((item) => item.operation === "persist_reviewed_release_context");
+  const memoryRef = String(memoryTrace?.detail.memory_ref ?? "");
+  const memoryMode: TruthMode = memoryRef.startsWith("projects/") ? "NATIVE" : "ADAPTER";
   return <div className="overlay" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><aside className="side-drawer" role="dialog" aria-modal="true" aria-label={drawer === "fleet" ? "Agent fleet" : "Architecture"}>
     <div className="drawer-header"><div><span className="eyebrow">Inspect, do not trust logos</span><h2>{drawer === "fleet" ? "Versioned capability fleet" : "Transition ownership"}</h2></div><button className="icon-button" aria-label="Close" onClick={onClose}><X size={18} /></button></div>
-    {drawer === "fleet" ? <div className="fleet-list">{fleet.map(([name, version, detail], index) => { const trace = snapshot.traces.find((item) => item.agent.includes(version.split("@")[0])); return <article key={version}><span className="fleet-number">{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><code>{version}</code><p>{detail}</p></div><TruthBadge mode={trace?.truth_mode ?? "ADAPTER"} /></article>; })}</div> : <div className="architecture-list">{[["Eventarc intake", "Casualty evidence opens a mission", "FIXTURE"], ["Gemini + ADK", "Evidence reconciliation proposals", "FIXTURE"], ["Model Armor", "Quarantine untrusted model-addressed text", "ADAPTER"], ["Cloud SQL", "Versions, approvals, receipts, idempotency", "ADAPTER"], ["Agent Identity", "Issuer-bound receipt verification", "ADAPTER"], ["Agent Observability", "Hash-linked events and trace spans", "ADAPTER"], ["Partner Cloud Run", "Independent insurer, adjuster, carrier receipts", "FIXTURE"], ["Cloud Scheduler", "Long-tail adjustment wakeups", "ADAPTER"]].map(([name, detail, mode], index) => <article key={name}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output never writes release state. SQL transitions require verified receipts and allowed prior state.</p></div></div>}
+    {drawer === "fleet" ? <div className="fleet-list">{fleet.map(([name, version, detail], index) => { const trace = snapshot.traces.find((item) => item.agent.includes(version.split("@")[0])); return <article key={version}><span className="fleet-number">{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><code>{version}</code><p>{detail}</p></div><TruthBadge mode={trace?.truth_mode ?? "ADAPTER"} /></article>; })}</div> : <div className="architecture-list">{[
+      ["Eventarc intake", "Authenticated CloudEvent opens one idempotent mission", snapshot.mission.truth_mode],
+      ["Agent Runtime + ADK", "Managed coordinator deployment with one bounded advance tool", "ADAPTER"],
+      ["Memory Bank", "Reviewed release context only; never authoritative state", memoryMode],
+      ["Model Armor", "Inline prompt-injection and data-leak screening through Gateway", "ADAPTER"],
+      ["Agent Registry", "Versioned fleet discovery and approved endpoints", "ADAPTER"],
+      ["Agent Identity + Gateway", "Zero-trust egress to partner services", "ADAPTER"],
+      ["Agent Observability", "OpenTelemetry topology, traces, and security spans", "ADAPTER"],
+      ["Partner Cloud Run", "Independent insurer, adjuster, and carrier fixtures", "FIXTURE"],
+    ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
   </aside></div>;
 }
 

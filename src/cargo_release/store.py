@@ -307,6 +307,44 @@ class SQLiteMissionStore:
             if result.rowcount != 1:
                 raise StoreError(f"Unknown artifact: {artifact_id}")
 
+    def write_reviewed_memory(
+        self,
+        mission_id: str,
+        memory_key: str,
+        value: dict[str, Any],
+        reviewed_by: str,
+    ) -> bool:
+        with self._transaction() as connection:
+            result = connection.execute(
+                """INSERT INTO derived_memory
+                   (id, mission_id, memory_key, value_json, reviewed_by, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(mission_id, memory_key) DO NOTHING""",
+                (
+                    f"memory-{uuid4().hex[:12]}",
+                    mission_id,
+                    memory_key,
+                    json.dumps(value, sort_keys=True),
+                    reviewed_by,
+                    utc_now(),
+                ),
+            )
+            return result.rowcount == 1
+
+    def reviewed_memory(self, mission_id: str, memory_key: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT value_json, reviewed_by FROM derived_memory
+                   WHERE mission_id = ? AND memory_key = ?""",
+                (mission_id, memory_key),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "value": json.loads(row["value_json"]),
+            "reviewed_by": row["reviewed_by"],
+        }
+
     @staticmethod
     def _append_event(
         connection: sqlite3.Connection,
@@ -332,7 +370,12 @@ class SQLiteMissionStore:
             (mission_id, event_type, actor, payload_json, previous, event_hash, created_at),
         )
 
-    def create_demo_mission(self, mission_id: str) -> MissionSnapshot:
+    def create_demo_mission(
+        self,
+        mission_id: str,
+        truth_mode: TruthMode = TruthMode.FIXTURE,
+        trigger_context: dict[str, Any] | None = None,
+    ) -> MissionSnapshot:
         now = utc_now()
         case_ref = f"GA-2026-{mission_id[-6:].upper()}"
         evidence = [
@@ -383,7 +426,7 @@ class SQLiteMissionStore:
                     ReleaseState.EVIDENCE_BLOCKED,
                     AdjustmentState.OPEN,
                     0,
-                    TruthMode.FIXTURE,
+                    truth_mode,
                     now,
                     now,
                 ),
@@ -413,8 +456,12 @@ class SQLiteMissionStore:
                 connection,
                 mission_id,
                 "MISSION_DECLARED",
-                "eventarc.fixture",
-                {"case_ref": case_ref, "evidence_count": len(evidence)},
+                "eventarc.native" if truth_mode is TruthMode.NATIVE else "eventarc.fixture",
+                {
+                    "case_ref": case_ref,
+                    "evidence_count": len(evidence),
+                    **(trigger_context or {}),
+                },
             )
         return self.snapshot(mission_id)
 

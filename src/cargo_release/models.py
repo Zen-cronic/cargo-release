@@ -175,3 +175,20 @@ class VersionedAction(BaseModel):
 
 class ReceiptEnvelope(BaseModel):
     receipt: PartnerReceipt
+
+
+class CasualtyEvent(BaseModel):
+    vessel: str = "MV Northstar"
+    container_ref: str = "TCLU-482019-7"
+    source_ref: str = "GA/NST/0819"
+
+
+class PubSubMessage(BaseModel):
+    data: str
+    message_id: str | None = Field(default=None, alias="messageId")
+    attributes: dict[str, str] = Field(default_factory=dict)
+
+
+class PubSubEnvelope(BaseModel):
+    message: PubSubMessage
+    subscription: str | None = None

@@ -1,13 +1,24 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import json
 import os
 
 from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from cargo_release.cloud_context import eventarc_truth_mode
 from cargo_release.engine import CargoReleaseEngine, DomainError, IdentityError
-from cargo_release.models import MissionSnapshot, ReceiptEnvelope, ReceiptKind, VersionedAction
+from cargo_release.models import (
+    CasualtyEvent,
+    MissionSnapshot,
+    PubSubEnvelope,
+    ReceiptEnvelope,
+    ReceiptKind,
+    VersionedAction,
+)
 from cargo_release.partners import (
     issue_adjuster_review,
     issue_carrier_readback,
@@ -64,6 +75,45 @@ def create_app(database_path: str | None = None) -> FastAPI:
     @app.post("/v1/missions/demo", response_model=MissionSnapshot)
     def create_demo() -> MissionSnapshot:
         return engine.create_demo_mission()
+
+    @app.post("/v1/events/casualty", response_model=MissionSnapshot)
+    def receive_casualty_event(
+        envelope: PubSubEnvelope,
+        ce_id: str | None = Header(default=None, alias="ce-id"),
+        ce_source: str | None = Header(default=None, alias="ce-source"),
+        ce_type: str | None = Header(default=None, alias="ce-type"),
+        trace_context: str | None = Header(default=None, alias="x-cloud-trace-context"),
+    ) -> MissionSnapshot:
+        if not ce_id or not ce_source:
+            raise DomainError("CloudEvent ce-id and ce-source headers are required")
+        try:
+            event_payload = json.loads(base64.b64decode(envelope.message.data, validate=True))
+            event = CasualtyEvent.model_validate(event_payload)
+        except (ValueError, json.JSONDecodeError) as error:
+            raise DomainError("Pub/Sub data must be base64-encoded casualty JSON") from error
+        mission_id = f"mission-{hashlib.sha256(ce_id.encode()).hexdigest()[:12]}"
+        try:
+            return store.snapshot(mission_id)
+        except MissionNotFound:
+            truth_mode = eventarc_truth_mode(
+                event_id=ce_id,
+                event_source=ce_source,
+                trace_context=trace_context,
+            )
+            store.create_demo_mission(
+                mission_id,
+                truth_mode,
+                {
+                    "cloud_event_id": ce_id,
+                    "cloud_event_source": ce_source,
+                    "cloud_event_type": ce_type,
+                    "cloud_trace_context": trace_context,
+                    "source_ref": event.source_ref,
+                    "declared_vessel": event.vessel,
+                    "declared_container": event.container_ref,
+                },
+            )
+            return runtime.run(mission_id)
 
     @app.get("/v1/missions/{mission_id}", response_model=MissionSnapshot)
     def get_mission(mission_id: str) -> MissionSnapshot:

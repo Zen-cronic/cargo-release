@@ -170,6 +170,10 @@ def test_bounded_runtime_yields_once_then_completes_release(
     packs = [item for item in snapshot.artifacts if item.kind == "SECURITY_PACK"]
     assert [item.revision for item in packs] == [1, 2]
     assert packs[-1].content["declaration_reference"] == snapshot.mission.case_ref
+    memory = engine.store.reviewed_memory(snapshot.mission.id, "verified-release-context-v1")
+    assert memory is not None
+    assert memory["value"]["adjustment_state"] == "OPEN"
+    assert memory["reviewed_by"] == "policy:release-readback-v1"
 
 
 def test_runtime_step_cap_fails_closed(engine: CargoReleaseEngine) -> None:

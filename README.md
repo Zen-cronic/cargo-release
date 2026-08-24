@@ -19,6 +19,28 @@ Create a demo mission with `POST /v1/missions/demo`, then call `POST /v1/mission
 
 Every partner receipt is HMAC-signed by a distinct synthetic identity. `RELEASED` requires adjuster acceptance, carrier release order, and carrier read-back; the separate adjustment lifecycle remains `OPEN`. Runtime leases prevent concurrent execution, the 12-step cap stops loops, completed transitions are resumable, and artifacts retain immutable content digests and revisions.
 
+## Google-managed execution path
+
+The deployable vertical slice keeps the same deterministic controller while adding managed
+execution evidence:
+
+- Pub/Sub and Eventarc deliver a real CloudEvent envelope to an idempotent casualty endpoint.
+- an ADK coordinator can deploy to Agent Runtime with Agent Identity and bounded inspect/advance
+  tools;
+- private insurer, adjuster, and carrier Cloud Run services are invoked with Google-signed ID
+  tokens and return separately signed receipts;
+- the public Next.js shell relays same-origin requests through its server runtime, which uses the
+  web service identity to invoke the private controller with a Google-signed ID token;
+- Memory Bank receives reviewed post-release facts only; it cannot mutate mission state; and
+- Agent Registry, Agent Gateway, Model Armor, and Agent Observability provide discovery,
+  policy-enforced routing, inline screening, and end-to-end telemetry.
+
+Local execution remains deterministic and labels all unconnected surfaces honestly. See the
+[per-project Google Cloud setup checklist](../submission/cargo-release/google-cloud-setup-checklist.md)
+and [`deploy/service-inventory.yaml`](deploy/service-inventory.yaml) for the exact service boundary.
+The current SQLite controller is an explicit single-instance judging proof, not a
+production-durability claim.
+
 ## Local frontend
 
 ```bash
@@ -43,7 +65,7 @@ npm run build
 npm run test:e2e
 ```
 
-Current local checkpoint: 15 backend/API/partner tests and two Playwright journeys pass. The browser suite proves the one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine, and architecture truth labels.
+Current local checkpoint: 21 backend/API/partner tests and two Playwright journeys pass. The browser suite proves the one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine, and architecture truth labels. The backend suite also covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed memory, private-partner selection, and native provenance propagation.
 
 ## Truth labels
 

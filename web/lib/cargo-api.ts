@@ -107,7 +107,9 @@ export interface MissionSnapshot {
   runs: MissionRun[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://127.0.0.1:8095";
+const API_BASE =
+  process.env.NEXT_PUBLIC_AGENT_URL ??
+  (process.env.NODE_ENV === "production" ? "/api/cargo" : "http://127.0.0.1:8095");
 
 async function request(path: string, init?: RequestInit): Promise<MissionSnapshot> {
   const response = await fetch(`${API_BASE}${path}`, {

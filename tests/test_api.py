@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import base64
+import json
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from fastapi.testclient import TestClient
 
 from cargo_release.api import create_app
+from cargo_release.cloud_context import eventarc_truth_mode
+from cargo_release.models import TruthMode
 
 
 def test_demo_route_walk_releases_cargo_but_not_adjustment(tmp_path: Path) -> None:
@@ -84,3 +89,84 @@ def test_api_one_start_and_one_human_gate_complete_release(tmp_path: Path) -> No
     assert snapshot["mission"]["adjustment_state"] == "OPEN"
     assert snapshot["runs"][-1]["status"] == "COMPLETED"
     assert len(snapshot["artifacts"]) == 3
+
+
+def test_cloudevent_ingress_is_idempotent_and_stops_at_human_gate(tmp_path: Path) -> None:
+    client = TestClient(create_app(str(tmp_path / "eventarc.db")))
+    headers = {
+        "ce-id": "evt-casualty-0819",
+        "ce-source": "//pubsub.googleapis.com/projects/demo/topics/casualties",
+        "ce-type": "com.cargorelease.casualty.declared.v1",
+        "x-cloud-trace-context": "trace-demo/1;o=1",
+    }
+    casualty_data = base64.b64encode(
+        json.dumps(
+            {
+                "source_ref": "GA/NST/0819",
+                "vessel": "MV Northstar",
+                "container_ref": "TCLU-482019-7",
+            }
+        ).encode()
+    ).decode()
+    envelope = {
+        "message": {
+            "data": casualty_data,
+            "messageId": "pubsub-message-0819",
+            "attributes": {"schema": "casualty-declared-v1"},
+        },
+        "subscription": "projects/demo/subscriptions/eventarc-us-central1-cargo",
+    }
+    first = client.post(
+        "/v1/events/casualty",
+        headers=headers,
+        json=envelope,
+    )
+    assert first.status_code == 200, first.text
+    snapshot = first.json()
+    assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
+    assert snapshot["mission"]["truth_mode"] == "FIXTURE"
+    assert snapshot["events"][0]["payload"]["cloud_event_id"] == "evt-casualty-0819"
+    assert len(snapshot["runs"]) == 1
+
+    second = client.post(
+        "/v1/events/casualty",
+        headers=headers,
+        json=envelope,
+    )
+    assert second.status_code == 200
+    assert len(second.json()["runs"]) == 1
+
+
+def test_cloudevent_rejects_invalid_pubsub_data(tmp_path: Path) -> None:
+    client = TestClient(create_app(str(tmp_path / "invalid-eventarc.db")))
+    response = client.post(
+        "/v1/events/casualty",
+        headers={
+            "ce-id": "evt-invalid",
+            "ce-source": "//pubsub.googleapis.com/projects/demo/topics/casualties",
+        },
+        json={"message": {"data": "not-base64"}},
+    )
+    assert response.status_code == 409
+    assert "base64-encoded casualty JSON" in response.json()["detail"]
+
+
+def test_eventarc_native_label_requires_cloud_run_and_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("K_SERVICE", "cargo-release-controller")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "demo-project")
+    assert (
+        eventarc_truth_mode(
+            event_id="evt-1",
+            event_source="//pubsub.googleapis.com/projects/demo/topics/casualties",
+            trace_context="trace/1;o=1",
+        )
+        is TruthMode.NATIVE
+    )
+    assert (
+        eventarc_truth_mode(
+            event_id="evt-1", event_source="//pubsub.googleapis.com", trace_context=None
+        )
+        is TruthMode.FIXTURE
+    )

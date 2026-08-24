@@ -28,5 +28,7 @@ test("architecture truth and quarantined evidence stay inspectable", async ({ pa
   await expect(page.getByText("QUARANTINED", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Architecture/ }).click();
   await expect(page.getByRole("heading", { name: "Transition ownership" })).toBeVisible();
-  await expect(page.getByText(/Model output never writes release state/)).toBeVisible();
+  await expect(page.locator(".architecture-rule")).toContainText(
+    "Model output and managed memory never write release state",
+  );
 });
