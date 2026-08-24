@@ -9,7 +9,9 @@ COPY pyproject.toml poetry.lock README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
-RUN useradd --create-home --uid 10001 cargo
+RUN useradd --create-home --uid 10001 cargo \
+    && mkdir -p /app/var \
+    && chown cargo:cargo /app/var
 USER cargo
 EXPOSE 8080
 CMD ["uvicorn", "cargo_release.api:app", "--host", "0.0.0.0", "--port", "8080"]
