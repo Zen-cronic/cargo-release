@@ -56,15 +56,32 @@ class LocalPartnerFixtures:
 class CloudRunPartnerServices:
     truth_mode = TruthMode.NATIVE
 
-    def __init__(self, insurer_url: str, adjuster_url: str, carrier_url: str) -> None:
+    def __init__(
+        self,
+        insurer_url: str,
+        adjuster_url: str,
+        carrier_url: str,
+        *,
+        insurer_audience: str | None = None,
+        adjuster_audience: str | None = None,
+        carrier_audience: str | None = None,
+    ) -> None:
         self.insurer_url = insurer_url.rstrip("/")
         self.adjuster_url = adjuster_url.rstrip("/")
         self.carrier_url = carrier_url.rstrip("/")
+        self.insurer_audience = (insurer_audience or insurer_url).rstrip("/")
+        self.adjuster_audience = (adjuster_audience or adjuster_url).rstrip("/")
+        self.carrier_audience = (carrier_audience or carrier_url).rstrip("/")
 
     @staticmethod
-    def _post(base_url: str, path: str, payload: dict[str, object]) -> PartnerReceipt:
+    def _post(
+        base_url: str,
+        audience: str,
+        path: str,
+        payload: dict[str, object],
+    ) -> PartnerReceipt:
         token: str = id_token.fetch_id_token(  # type: ignore[no-untyped-call]
-            Request(), base_url
+            Request(), audience
         )
         with httpx.Client(base_url=base_url, timeout=30) as client:
             response = client.post(
@@ -78,6 +95,7 @@ class CloudRunPartnerServices:
     def insurer_guarantee(self, snapshot: MissionSnapshot) -> PartnerReceipt:
         return self._post(
             self.insurer_url,
+            self.insurer_audience,
             "/v1/guarantees:issue",
             {
                 "mission_id": snapshot.mission.id,
@@ -89,6 +107,7 @@ class CloudRunPartnerServices:
     def adjuster_review(self, snapshot: MissionSnapshot, *, corrected: bool) -> PartnerReceipt:
         return self._post(
             self.adjuster_url,
+            self.adjuster_audience,
             "/v1/security:review",
             {
                 "mission_id": snapshot.mission.id,
@@ -105,6 +124,7 @@ class CloudRunPartnerServices:
         )
         return self._post(
             self.carrier_url,
+            self.carrier_audience,
             "/v1/releases:issue",
             {
                 "mission_id": snapshot.mission.id,
@@ -118,6 +138,7 @@ class CloudRunPartnerServices:
     ) -> PartnerReceipt:
         return self._post(
             self.carrier_url,
+            self.carrier_audience,
             "/v1/releases:readback",
             {
                 "mission_id": snapshot.mission.id,
@@ -137,5 +158,12 @@ def build_partner_port() -> PartnerPort:
     if on_cloud_run and all(urls):
         insurer, adjuster, carrier = urls
         assert insurer is not None and adjuster is not None and carrier is not None
-        return CloudRunPartnerServices(insurer, adjuster, carrier)
+        return CloudRunPartnerServices(
+            insurer,
+            adjuster,
+            carrier,
+            insurer_audience=os.getenv("CARGO_RELEASE_INSURER_AUDIENCE"),
+            adjuster_audience=os.getenv("CARGO_RELEASE_ADJUSTER_AUDIENCE"),
+            carrier_audience=os.getenv("CARGO_RELEASE_CARRIER_AUDIENCE"),
+        )
     return LocalPartnerFixtures()

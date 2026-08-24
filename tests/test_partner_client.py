@@ -30,6 +30,9 @@ def test_local_partner_port_is_the_fail_closed_default(
         "CARGO_RELEASE_INSURER_URL",
         "CARGO_RELEASE_ADJUSTER_URL",
         "CARGO_RELEASE_CARRIER_URL",
+        "CARGO_RELEASE_INSURER_AUDIENCE",
+        "CARGO_RELEASE_ADJUSTER_AUDIENCE",
+        "CARGO_RELEASE_CARRIER_AUDIENCE",
     ):
         monkeypatch.delenv(name, raising=False)
     assert isinstance(build_partner_port(), LocalPartnerFixtures)
@@ -45,7 +48,13 @@ def test_cloud_run_partner_port_requires_runtime_identity_and_all_urls(
     assert isinstance(build_partner_port(), LocalPartnerFixtures)
 
     monkeypatch.setenv("CARGO_RELEASE_CARRIER_URL", "https://carrier.example")
-    assert isinstance(build_partner_port(), CloudRunPartnerServices)
+    monkeypatch.setenv(
+        "CARGO_RELEASE_INSURER_AUDIENCE", "https://insurer-audience.example"
+    )
+    partner_port = build_partner_port()
+    assert isinstance(partner_port, CloudRunPartnerServices)
+    assert partner_port.insurer_audience == "https://insurer-audience.example"
+    assert partner_port.adjuster_audience == "https://adjuster.example"
 
 
 def test_runtime_preserves_native_partner_provenance(tmp_path: Path) -> None:
