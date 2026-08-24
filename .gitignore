@@ -13,6 +13,7 @@ node_modules/
 .next/
 playwright-report/
 test-results/
+*.tsbuildinfo
 .playwright-mcp/
 docs/
 BUILD_CHECKPOINT.md
