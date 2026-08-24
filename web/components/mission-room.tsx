@@ -9,12 +9,12 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  createDemoMission, type Evidence, type MissionSnapshot, postMissionAction,
+  createDemoMission, type Evidence, type MissionArtifact, type MissionSnapshot, postMissionAction,
   type Receipt, type ReceiptKind, type TruthMode,
 } from "@/lib/cargo-api";
 
 type Drawer = "architecture" | "fleet" | null;
-type WorkspaceTab = "mission" | "evidence" | "receipts" | "activity";
+type WorkspaceTab = "mission" | "evidence" | "documents" | "receipts" | "activity";
 
 interface NextAction {
   eyebrow: string;
@@ -46,6 +46,7 @@ const fleet = [
 const tabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "mission", label: "Mission" },
   { id: "evidence", label: "Evidence" },
+  { id: "documents", label: "Documents" },
   { id: "receipts", label: "Receipts" },
   { id: "activity", label: "Activity" },
 ];
@@ -54,65 +55,25 @@ function hasReceipt(snapshot: MissionSnapshot, kind: ReceiptKind) {
   return snapshot.receipts.some((receipt) => receipt.kind === kind);
 }
 
-function hasEvent(snapshot: MissionSnapshot, eventType: string) {
-  return snapshot.events.some((event) => event.event_type === eventType);
-}
-
 function actionFor(snapshot: MissionSnapshot): NextAction | null {
   const { mission } = snapshot;
   if (mission.release_state === "EVIDENCE_BLOCKED") return {
-    eyebrow: "Evidence exception", title: "Resolve one manifest conflict",
-    detail: "Reconcile the container check digit and quarantine an instruction hidden in broker email.",
-    button: "Reconcile evidence", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, ":analyze", current.mission.version),
+    eyebrow: "Continuous action engine", title: "Start the cargo release mission",
+    detail: "The fleet will reconcile evidence, quarantine unsafe instructions, and stop only at the owner-attestation gate.",
+    button: "Start autonomous mission", tone: "signal",
+    invoke: (current) => postMissionAction(current.mission.id, ":run"),
   };
   if (mission.release_state === "READY_FOR_SIGNATURE" && snapshot.approvals.length === 0) return {
     eyebrow: "Human authority required", title: "Owner bond is ready to attest",
-    detail: "The agent prepared the artifact. A cargo-owner operator must explicitly approve it.",
-    button: "Approve owner bond", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/approvals/owner-bond", current.mission.version, "cargo-owner.demo"),
+    detail: "Review the generated artifact. Approval resumes the fleet; insurer, adjuster, correction, and carrier work then complete without step-through.",
+    button: "Approve bond & resume", tone: "signal",
+    invoke: (current) => postMissionAction(current.mission.id, "/approvals/owner-bond:approve-and-resume", current.mission.version, "cargo-owner.demo"),
   };
-  if (mission.release_state === "READY_FOR_SIGNATURE" && !hasReceipt(snapshot, "INSURER_GUARANTEE")) return {
-    eyebrow: "Independent security", title: "Request the insurer guarantee",
-    detail: "The sandbox insurer issues its own signed receipt. It does not decide coverage.",
-    button: "Request insurer guarantee", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/demo/insurer"),
-  };
-  if (mission.release_state === "READY_FOR_SIGNATURE") return {
-    eyebrow: "Security pack complete", title: "Send both instruments to the adjuster",
-    detail: "Submission contains the human-approved bond and independently issued guarantee.",
-    button: "Submit full security", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, ":submit-security", current.mission.version),
-  };
-  if (mission.release_state === "SECURITY_SUBMITTED" && !hasReceipt(snapshot, "ADJUSTER_REJECTION")) return {
-    eyebrow: "External review", title: "Ask the average adjuster to review",
-    detail: "The first fixture review will reject one missing declaration reference.",
-    button: "Send to adjuster", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/demo/adjuster"),
-  };
-  if (mission.release_state === "SECURITY_SUBMITTED" && !hasEvent(snapshot, "SECURITY_PACK_CORRECTED")) return {
-    eyebrow: "Correction required", title: "Adjuster returned a precise exception",
-    detail: "Add the General Average declaration reference to the owner bond; preserve the rejection receipt.",
-    button: "Apply requested correction", tone: "danger",
-    invoke: (current) => postMissionAction(current.mission.id, ":correct-security", current.mission.version),
-  };
-  if (mission.release_state === "SECURITY_SUBMITTED") return {
-    eyebrow: "Corrected pack ready", title: "Return the revision for acceptance",
-    detail: "The same adjuster identity will issue a new authoritative receipt.",
-    button: "Resubmit to adjuster", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/demo/adjuster"),
-  };
-  if (mission.release_state === "SECURITY_ACCEPTED" && !hasReceipt(snapshot, "CARRIER_RELEASE_ORDER")) return {
-    eyebrow: "First key verified", title: "Security accepted; cargo still held",
-    detail: "Ask the carrier for its separate release order. Adjuster acceptance cannot release cargo alone.",
-    button: "Request carrier release", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/demo/carrier-release"),
-  };
-  if (mission.release_state === "SECURITY_ACCEPTED") return {
-    eyebrow: "Final authority check", title: "Read the release back from the carrier",
-    detail: "Release changes only after a second carrier receipt confirms the order is visible.",
-    button: "Verify carrier read-back", tone: "verified",
-    invoke: (current) => postMissionAction(current.mission.id, "/demo/carrier-readback"),
+  if (mission.release_state !== "RELEASED") return {
+    eyebrow: "Recovery-safe runtime", title: "Resume the bounded mission",
+    detail: "The prior run stopped between verified transitions. Resume from durable state without replaying completed work.",
+    button: "Resume autonomous mission", tone: "verified",
+    invoke: (current) => postMissionAction(current.mission.id, ":run"),
   };
   return null;
 }
@@ -125,6 +86,7 @@ export function MissionRoom() {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [tab, setTab] = useState<WorkspaceTab>("mission");
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
 
   const reset = useCallback(async () => {
     setBusy(true); setError(null); setTab("mission");
@@ -132,6 +94,7 @@ export function MissionRoom() {
       const next = await createDemoMission();
       setSnapshot(next);
       setSelectedEvidenceId(next.evidence[0]?.id ?? null);
+      setSelectedArtifactId(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Mission API unavailable");
     } finally { setBusy(false); }
@@ -165,6 +128,7 @@ export function MissionRoom() {
 
   const released = snapshot.mission.release_state === "RELEASED";
   const selectedEvidence = snapshot.evidence.find((item) => item.id === selectedEvidenceId) ?? snapshot.evidence[0];
+  const selectedArtifact = snapshot.artifacts.find((item) => item.id === selectedArtifactId) ?? snapshot.artifacts.at(-1);
   return (
     <div className={`app-shell ${released ? "is-released" : ""}`}>
       <header className="mission-header">
@@ -181,7 +145,7 @@ export function MissionRoom() {
       {error && <div className="error-banner"><AlertOctagon size={16} /> Action failed closed: {error}</div>}
       <nav className="workspace-tabs" aria-label="Mission workspace">
         <div className="tab-list">{tabs.map((item) => {
-          const count = item.id === "evidence" ? snapshot.evidence.length : item.id === "receipts" ? snapshot.receipts.length : item.id === "activity" ? snapshot.events.length : null;
+          const count = item.id === "evidence" ? snapshot.evidence.length : item.id === "documents" ? snapshot.artifacts.length : item.id === "receipts" ? snapshot.receipts.length : item.id === "activity" ? snapshot.events.length : null;
           return <button key={item.id} className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => setTab(item.id)}>{item.label}{count !== null && <span>{count}</span>}</button>;
         })}</div>
         <div className={`tab-state ${released ? "released" : "held"}`}>{released ? <PackageCheck size={15} /> : <LockKeyhole size={15} />} Physical release: <strong>{released ? "RELEASED" : "HELD"}</strong></div>
@@ -190,6 +154,7 @@ export function MissionRoom() {
         <section className="workspace-stage">
           {tab === "mission" && <MissionPanel snapshot={snapshot} />}
           {tab === "evidence" && <EvidencePanel snapshot={snapshot} selected={selectedEvidence} onSelect={setSelectedEvidenceId} />}
+          {tab === "documents" && <DocumentsPanel snapshot={snapshot} selected={selectedArtifact} onSelect={setSelectedArtifactId} />}
           {tab === "receipts" && <ReceiptsPanel snapshot={snapshot} onInspect={setReceipt} />}
           {tab === "activity" && <ActivityPanel snapshot={snapshot} />}
         </section>
@@ -231,6 +196,22 @@ function EvidencePanel({ snapshot, selected, onSelect }: { snapshot: MissionSnap
   </div>;
 }
 
+function DocumentsPanel({ snapshot, selected, onSelect }: { snapshot: MissionSnapshot; selected?: MissionArtifact; onSelect: (id: string) => void }) {
+  return <div className="detail-panel">
+    <PanelHeading eyebrow="Generated instruments" title="Inspect what the fleet produced" detail="Every legal-adjacent artifact is versioned, content-addressed, and kept separate from the state transition that consumes it." />
+    {snapshot.artifacts.length === 0 ? <div className="large-empty"><FileCheck2 size={34} /><h2>No instrument generated yet</h2><p>Start the mission to create the owner bond from reconciled evidence.</p></div> : <div className="evidence-browser artifact-browser">
+      <div className="evidence-index">{snapshot.artifacts.slice().reverse().map((item) => <button key={item.id} className={selected?.id === item.id ? "active" : ""} onClick={() => onSelect(item.id)}><span className={`evidence-icon ${item.status === "DRAFT" ? "" : "status-verified"}`}><FileCheck2 /></span><span><small>{item.kind.replaceAll("_", " ")} · V{item.revision}</small><strong>{item.status}</strong></span><ChevronRight size={15} /></button>)}</div>
+      {selected && <article className="evidence-detail status-verified">
+        <div className="document-kicker"><span>{selected.kind.replaceAll("_", " ")} · revision {selected.revision}</span><strong>{selected.status}</strong></div>
+        <h2>{selected.kind === "OWNER_BOND" ? "Cargo owner General Average bond" : "Full security submission pack"}</h2>
+        <p className="document-summary">Generated from reviewed mission facts. This instrument cannot release cargo by itself.</p>
+        <dl className="document-facts">{Object.entries(selected.content).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value ?? "—")}</dd></div>)}</dl>
+        <div className="digest-block"><Fingerprint size={15} /><span>Artifact digest</span><code>sha256:{selected.digest}</code></div>
+      </article>}
+    </div>}
+  </div>;
+}
+
 function ReceiptsPanel({ snapshot, onInspect }: { snapshot: MissionSnapshot; onInspect: (receipt: Receipt) => void }) {
   return <div className="detail-panel"><PanelHeading eyebrow="Authority ledger" title="Receipts unlock cargo" detail="Agent output is advisory. Independent, issuer-bound receipts are the keys that permit state transitions." />
     {snapshot.receipts.length === 0 ? <div className="large-empty"><KeyRound size={34} /><h2>No partner authority recorded</h2><p>Receipts will appear here as the insurer, adjuster, and carrier independently respond.</p></div> : <div className="receipt-gallery">{snapshot.receipts.slice().reverse().map((item) => <button key={item.id} className={item.kind === "ADJUSTER_REJECTION" ? "rejected" : ""} onClick={() => onInspect(item)}><span className="receipt-icon">{item.kind === "ADJUSTER_REJECTION" ? <FileWarning size={17} /> : <FileCheck2 size={17} />}</span><span><small>{item.issuer}</small><strong>{receiptLabels[item.kind]}</strong><code>{item.external_id}</code></span><ChevronRight size={17} /></button>)}</div>}
@@ -248,9 +229,11 @@ function PanelHeading({ eyebrow, title, detail }: { eyebrow: string; title: stri
 function DecisionRail({ snapshot, nextAction, busy, onAdvance, onNavigate }: { snapshot: MissionSnapshot; nextAction: NextAction | null; busy: boolean; onAdvance: () => Promise<void>; onNavigate: (tab: WorkspaceTab) => void }) {
   const adjuster = hasReceipt(snapshot, "ADJUSTER_ACCEPTANCE");
   const carrier = hasReceipt(snapshot, "CARRIER_RELEASE_READBACK");
+  const latestRun = snapshot.runs.at(-1);
   return <aside className="decision-rail" aria-labelledby="action-title">
     <div className="rail-heading"><span>Next decision</span><strong id="action-title">What needs you now</strong></div>
     {nextAction ? <div className={`next-action tone-${nextAction.tone}`}><span className="action-eyebrow">{nextAction.eyebrow}</span><h2>{nextAction.title}</h2><p>{nextAction.detail}</p><button data-testid="primary-action" className="primary-button" disabled={busy} onClick={() => void onAdvance()}>{busy ? <LoaderCircle className="spin" size={17} /> : <CircleDot size={17} />}{busy ? "Recording…" : nextAction.button}{!busy && <ArrowRight size={16} />}</button></div> : <div className="release-complete"><BadgeCheck size={25} /><span className="action-eyebrow">No release action open</span><h2>Carrier read-back verified</h2><p>The container is released. Adjustment monitoring remains active and separate.</p></div>}
+    {latestRun && <div className={`runtime-status status-${latestRun.status.toLowerCase()}`}><span><CircleDot size={13} /> Autonomous runtime</span><strong>{latestRun.status.replace("_", " ")}</strong><small>{latestRun.steps} bounded steps · {latestRun.reason.replaceAll("_", " ").toLowerCase()}</small></div>}
     <div className="authority-block">
       <div className="human-authority"><span>Human authority</span>{snapshot.approvals.length ? <strong className="verified"><Check size={14} /> Owner bond attested</strong> : <strong className="pending"><LockKeyhole size={14} /> Awaiting owner</strong>}</div>
       <AuthorityCard label="Adjuster key" complete={adjuster} detail={adjuster ? "Full security accepted" : "Acceptance receipt missing"} />
@@ -258,6 +241,7 @@ function DecisionRail({ snapshot, nextAction, busy, onAdvance, onNavigate }: { s
     </div>
     <div className="rail-links">
       <button onClick={() => onNavigate("evidence")}><span><Layers3 size={16} /><strong>Evidence</strong></span><small>{snapshot.evidence.length} sources</small><ChevronRight size={15} /></button>
+      <button onClick={() => onNavigate("documents")}><span><FileCheck2 size={16} /><strong>Documents</strong></span><small>{snapshot.artifacts.length} versions</small><ChevronRight size={15} /></button>
       <button onClick={() => onNavigate("receipts")}><span><KeyRound size={16} /><strong>Receipts</strong></span><small>{snapshot.receipts.length} verified</small><ChevronRight size={15} /></button>
       <button onClick={() => onNavigate("activity")}><span><Clock3 size={16} /><strong>Activity</strong></span><small>{snapshot.events.length} events</small><ChevronRight size={15} /></button>
     </div>

@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from cargo_release.models import (
+    ArtifactStatus,
     EvidenceStatus,
     MissionSnapshot,
     PartnerReceipt,
@@ -55,7 +56,7 @@ class CargoReleaseEngine:
             "BLOCKED",
             {"evidence_kind": "Broker email", "rule": "prompt-injection-in-evidence"},
         )
-        return self.store.mutate(
+        snapshot = self.store.mutate(
             mission_id,
             action.expected_version,
             event_type="EVIDENCE_RECONCILED",
@@ -84,17 +85,38 @@ class CargoReleaseEngine:
                 ),
             },
         )
+        if self.store.latest_artifact(mission_id, "OWNER_BOND") is None:
+            self.store.save_artifact(
+                mission_id,
+                "OWNER_BOND",
+                ArtifactStatus.DRAFT,
+                {
+                    "case_ref": snapshot.mission.case_ref,
+                    "cargo_owner": "North Harbor Imports Ltd",
+                    "container_ref": snapshot.mission.container_ref,
+                    "security_amount": "USD 128,400",
+                    "instrument": "General Average bond",
+                    "authority": "cargo owner",
+                    "coverage_decision": "NOT_MADE",
+                },
+            )
+        return self.store.snapshot(mission_id)
 
     def approve_owner_bond(self, mission_id: str, action: VersionedAction) -> MissionSnapshot:
-        return self.store.mutate(
+        artifact = self.store.latest_artifact(mission_id, "OWNER_BOND")
+        if artifact is None:
+            raise DomainError("Owner bond artifact has not been generated")
+        snapshot = self.store.mutate(
             mission_id,
             action.expected_version,
             event_type="OWNER_BOND_APPROVED",
             actor=action.actor,
             payload={"authority": "human", "signature_mode": "synthetic-attestation"},
             allowed_states={ReleaseState.READY_FOR_SIGNATURE},
-            approval=("OWNER_BOND", "artifact://owner-bond-v1"),
+            approval=("OWNER_BOND", f"artifact://{artifact.id}@{artifact.digest[:12]}"),
         )
+        self.store.set_artifact_status(artifact.id, ArtifactStatus.APPROVED)
+        return self.store.snapshot(snapshot.mission.id)
 
     def submit_security(self, mission_id: str, action: VersionedAction) -> MissionSnapshot:
         snapshot = self.store.snapshot(mission_id)
@@ -102,7 +124,7 @@ class CargoReleaseEngine:
             raise DomainError("Human owner-bond approval is required")
         if not any(item.kind is ReceiptKind.INSURER_GUARANTEE for item in snapshot.receipts):
             raise DomainError("Verified insurer guarantee receipt is required")
-        return self.store.mutate(
+        snapshot = self.store.mutate(
             mission_id,
             action.expected_version,
             event_type="SECURITY_SUBMITTED",
@@ -111,12 +133,33 @@ class CargoReleaseEngine:
             allowed_states={ReleaseState.READY_FOR_SIGNATURE},
             target_state=ReleaseState.SECURITY_SUBMITTED,
         )
+        if self.store.latest_artifact(mission_id, "SECURITY_PACK") is None:
+            guarantee = next(
+                item for item in snapshot.receipts if item.kind is ReceiptKind.INSURER_GUARANTEE
+            )
+            approval = next(item for item in snapshot.approvals if item.kind == "OWNER_BOND")
+            self.store.save_artifact(
+                mission_id,
+                "SECURITY_PACK",
+                ArtifactStatus.SUBMITTED,
+                {
+                    "case_ref": snapshot.mission.case_ref,
+                    "owner_bond_ref": approval.artifact_ref,
+                    "insurer_guarantee_ref": guarantee.external_id,
+                    "declaration_reference": None,
+                    "delivery": "sandbox-adjuster",
+                },
+            )
+        return self.store.snapshot(mission_id)
 
     def correct_security(self, mission_id: str, action: VersionedAction) -> MissionSnapshot:
         snapshot = self.store.snapshot(mission_id)
         if not any(item.kind is ReceiptKind.ADJUSTER_REJECTION for item in snapshot.receipts):
             raise DomainError("An adjuster correction receipt is required")
-        return self.store.mutate(
+        pack = self.store.latest_artifact(mission_id, "SECURITY_PACK")
+        if pack is None:
+            raise DomainError("Security pack artifact has not been generated")
+        snapshot = self.store.mutate(
             mission_id,
             action.expected_version,
             event_type="SECURITY_PACK_CORRECTED",
@@ -124,6 +167,18 @@ class CargoReleaseEngine:
             payload={"field": "declaration reference", "value": snapshot.mission.case_ref},
             allowed_states={ReleaseState.SECURITY_SUBMITTED},
         )
+        self.store.save_artifact(
+            mission_id,
+            "SECURITY_PACK",
+            ArtifactStatus.SUBMITTED,
+            {
+                **pack.content,
+                "declaration_reference": snapshot.mission.case_ref,
+                "supersedes_digest": pack.digest,
+                "correction": "adjuster rejection preserved",
+            },
+        )
+        return self.store.snapshot(mission_id)
 
     def apply_partner_receipt(
         self, receipt: PartnerReceipt, partner_identity: str

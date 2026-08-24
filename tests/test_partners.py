@@ -33,14 +33,10 @@ def test_adjuster_sandbox_issues_rejection_then_acceptance() -> None:
         "insurer_guarantee_present": True,
         "declaration_reference_present": False,
     }
-    rejected = PartnerReceipt.model_validate(
-        client.post("/v1/security:review", json=body).json()
-    )
+    rejected = PartnerReceipt.model_validate(client.post("/v1/security:review", json=body).json())
     assert rejected.kind is ReceiptKind.ADJUSTER_REJECTION
     body["declaration_reference_present"] = True
-    accepted = PartnerReceipt.model_validate(
-        client.post("/v1/security:review", json=body).json()
-    )
+    accepted = PartnerReceipt.model_validate(client.post("/v1/security:review", json=body).json())
     assert accepted.kind is ReceiptKind.ADJUSTER_ACCEPTANCE
 
 

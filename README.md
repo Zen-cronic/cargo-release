@@ -15,7 +15,35 @@ poetry install
 poetry run uvicorn cargo_release.api:app --reload --port 8095
 ```
 
-Create a demo mission with `POST /v1/missions/demo`, then use the bounded demo endpoints exposed in `/docs`. Every partner receipt is HMAC-signed by a distinct synthetic identity. `RELEASED` requires adjuster acceptance, carrier release order, and carrier read-back; the separate adjustment lifecycle remains `OPEN`.
+Create a demo mission with `POST /v1/missions/demo`, then call `POST /v1/missions/{id}:run`. The bounded runtime reconciles evidence, generates the owner-bond artifact, and yields at the human approval gate. `POST /v1/missions/{id}/approvals/owner-bond:approve-and-resume` records that attestation and autonomously completes insurer issuance, adjuster rejection and correction, acceptance, carrier release order, and carrier read-back.
+
+Every partner receipt is HMAC-signed by a distinct synthetic identity. `RELEASED` requires adjuster acceptance, carrier release order, and carrier read-back; the separate adjustment lifecycle remains `OPEN`. Runtime leases prevent concurrent execution, the 12-step cap stops loops, completed transitions are resumable, and artifacts retain immutable content digests and revisions.
+
+## Local frontend
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:3024`. The default Mission view keeps the business consequence and the only open decision in frame; Evidence, generated Documents, partner Receipts, and hash-linked Activity are progressively disclosed in separate workspaces.
+
+## Verification
+
+```bash
+export VIRTUAL_ENV="$HOME/.pyenv/versions/.cargo-release"
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+poetry run pytest
+poetry run ruff check src tests
+poetry run mypy src
+cd web
+npm run check
+npm run build
+npm run test:e2e
+```
+
+Current local checkpoint: 15 backend/API/partner tests and two Playwright journeys pass. The browser suite proves the one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine, and architecture truth labels.
 
 ## Truth labels
 

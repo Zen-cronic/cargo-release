@@ -14,6 +14,7 @@ from cargo_release.partners import (
     issue_carrier_release,
     issue_insurer_guarantee,
 )
+from cargo_release.runtime import MissionOrchestrator
 from cargo_release.security import ReceiptSecurityError
 from cargo_release.store import MissionNotFound, SQLiteMissionStore, StoreError
 
@@ -26,12 +27,14 @@ def create_app(database_path: str | None = None) -> FastAPI:
     )
     store = SQLiteMissionStore(path)
     engine = CargoReleaseEngine(store)
+    runtime = MissionOrchestrator(engine)
     app = FastAPI(
         title="Cargo Release Mission API",
         version="0.1.0",
         description="Synthetic General Average security-to-release workflow.",
     )
     app.state.engine = engine
+    app.state.runtime = runtime
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3024", "http://localhost:3024"],
@@ -51,9 +54,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
         return JSONResponse(status_code=status, content={"detail": str(error)})
 
     @app.exception_handler(ReceiptSecurityError)
-    async def handle_security_error(
-        _request: Request, error: ReceiptSecurityError
-    ) -> JSONResponse:
+    async def handle_security_error(_request: Request, error: ReceiptSecurityError) -> JSONResponse:
         return JSONResponse(status_code=401, content={"detail": str(error)})
 
     @app.get("/healthz")
@@ -72,9 +73,21 @@ def create_app(database_path: str | None = None) -> FastAPI:
     def analyze(mission_id: str, action: VersionedAction) -> MissionSnapshot:
         return engine.analyze_evidence(mission_id, action)
 
+    @app.post("/v1/missions/{mission_id}:run", response_model=MissionSnapshot)
+    def run_mission(mission_id: str) -> MissionSnapshot:
+        return runtime.run(mission_id)
+
     @app.post("/v1/missions/{mission_id}/approvals/owner-bond", response_model=MissionSnapshot)
     def approve(mission_id: str, action: VersionedAction) -> MissionSnapshot:
         return engine.approve_owner_bond(mission_id, action)
+
+    @app.post(
+        "/v1/missions/{mission_id}/approvals/owner-bond:approve-and-resume",
+        response_model=MissionSnapshot,
+    )
+    def approve_and_resume(mission_id: str, action: VersionedAction) -> MissionSnapshot:
+        engine.approve_owner_bond(mission_id, action)
+        return runtime.run(mission_id)
 
     @app.post("/v1/missions/{mission_id}:submit-security", response_model=MissionSnapshot)
     def submit(mission_id: str, action: VersionedAction) -> MissionSnapshot:

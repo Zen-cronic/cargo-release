@@ -5,13 +5,21 @@ from pathlib import Path
 import pytest
 
 from cargo_release.engine import CargoReleaseEngine, DomainError, IdentityError
-from cargo_release.models import EvidenceStatus, ReceiptKind, ReleaseState, VersionedAction
+from cargo_release.models import (
+    ArtifactStatus,
+    EvidenceStatus,
+    ReceiptKind,
+    ReleaseState,
+    RunStatus,
+    VersionedAction,
+)
 from cargo_release.partners import (
     issue_adjuster_review,
     issue_carrier_readback,
     issue_carrier_release,
     issue_insurer_guarantee,
 )
+from cargo_release.runtime import MissionOrchestrator, StepLimitError
 from cargo_release.security import ReceiptSecurityError
 from cargo_release.store import InvalidTransition, SQLiteMissionStore, VersionConflict
 
@@ -84,6 +92,9 @@ def test_analysis_quarantines_prompt_injection(engine: CargoReleaseEngine) -> No
     assert email.status is EvidenceStatus.QUARANTINED
     assert email.facts["accepted_as_fact"] is False
     assert any(trace.status == "BLOCKED" for trace in snapshot.traces)
+    bond = next(item for item in snapshot.artifacts if item.kind == "OWNER_BOND")
+    assert bond.status is ArtifactStatus.DRAFT
+    assert bond.content["coverage_decision"] == "NOT_MADE"
 
 
 def test_security_cannot_submit_without_human_approval(engine: CargoReleaseEngine) -> None:
@@ -138,3 +149,34 @@ def test_readback_cannot_replace_release_order(engine: CargoReleaseEngine) -> No
     )
     with pytest.raises(InvalidTransition, match="CARRIER_RELEASE_ORDER"):
         engine.apply_partner_receipt(readback, "partner:carrier")
+
+
+def test_bounded_runtime_yields_once_then_completes_release(
+    engine: CargoReleaseEngine,
+) -> None:
+    runtime = MissionOrchestrator(engine)
+    snapshot = engine.create_demo_mission()
+    snapshot = runtime.run(snapshot.mission.id)
+    assert snapshot.mission.release_state is ReleaseState.READY_FOR_SIGNATURE
+    assert snapshot.runs[-1].status is RunStatus.WAITING_HUMAN
+    assert snapshot.runs[-1].reason == "OWNER_BOND_APPROVAL_REQUIRED"
+
+    snapshot = engine.approve_owner_bond(snapshot.mission.id, action(snapshot, "cargo-owner.demo"))
+    snapshot = runtime.run(snapshot.mission.id)
+    assert snapshot.mission.release_state is ReleaseState.RELEASED
+    assert snapshot.runs[-1].status is RunStatus.COMPLETED
+    assert snapshot.runs[-1].steps == 7
+    assert len(snapshot.receipts) == 5
+    packs = [item for item in snapshot.artifacts if item.kind == "SECURITY_PACK"]
+    assert [item.revision for item in packs] == [1, 2]
+    assert packs[-1].content["declaration_reference"] == snapshot.mission.case_ref
+
+
+def test_runtime_step_cap_fails_closed(engine: CargoReleaseEngine) -> None:
+    snapshot = engine.create_demo_mission()
+    runtime = MissionOrchestrator(engine, max_steps=1)
+    with pytest.raises(StepLimitError):
+        runtime.run(snapshot.mission.id)
+    snapshot = engine.store.snapshot(snapshot.mission.id)
+    assert snapshot.mission.release_state is ReleaseState.READY_FOR_SIGNATURE
+    assert snapshot.runs[-1].status is RunStatus.FAILED

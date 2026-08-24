@@ -77,6 +77,25 @@ export interface TraceSpan {
   created_at: string;
 }
 
+export interface MissionArtifact {
+  id: string;
+  kind: string;
+  revision: number;
+  status: "DRAFT" | "APPROVED" | "SUBMITTED";
+  content: Record<string, unknown>;
+  digest: string;
+  created_at: string;
+}
+
+export interface MissionRun {
+  id: string;
+  status: "RUNNING" | "WAITING_HUMAN" | "COMPLETED" | "FAILED";
+  reason: string;
+  steps: number;
+  started_at: string;
+  updated_at: string;
+}
+
 export interface MissionSnapshot {
   mission: Mission;
   evidence: Evidence[];
@@ -84,6 +103,8 @@ export interface MissionSnapshot {
   receipts: Receipt[];
   events: MissionEvent[];
   traces: TraceSpan[];
+  artifacts: MissionArtifact[];
+  runs: MissionRun[];
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://127.0.0.1:8095";

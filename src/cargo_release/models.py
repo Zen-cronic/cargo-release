@@ -38,6 +38,19 @@ class EvidenceStatus(StrEnum):
     QUARANTINED = "QUARANTINED"
 
 
+class ArtifactStatus(StrEnum):
+    DRAFT = "DRAFT"
+    APPROVED = "APPROVED"
+    SUBMITTED = "SUBMITTED"
+
+
+class RunStatus(StrEnum):
+    RUNNING = "RUNNING"
+    WAITING_HUMAN = "WAITING_HUMAN"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class ReceiptKind(StrEnum):
     INSURER_GUARANTEE = "INSURER_GUARANTEE"
     ADJUSTER_REJECTION = "ADJUSTER_REJECTION"
@@ -123,6 +136,27 @@ class TraceSpan(BaseModel):
     created_at: str
 
 
+class MissionArtifact(BaseModel):
+    id: str
+    mission_id: str
+    kind: str
+    revision: int
+    status: ArtifactStatus
+    content: dict[str, Any]
+    digest: str
+    created_at: str
+
+
+class MissionRun(BaseModel):
+    id: str
+    mission_id: str
+    status: RunStatus
+    reason: str
+    steps: int
+    started_at: str
+    updated_at: str
+
+
 class MissionSnapshot(BaseModel):
     mission: Mission
     evidence: list[Evidence]
@@ -130,6 +164,8 @@ class MissionSnapshot(BaseModel):
     receipts: list[StoredReceipt]
     events: list[MissionEvent]
     traces: list[TraceSpan]
+    artifacts: list[MissionArtifact]
+    runs: list[MissionRun]
 
 
 class VersionedAction(BaseModel):

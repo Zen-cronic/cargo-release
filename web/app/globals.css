@@ -134,6 +134,13 @@ button:focus-visible { outline: 3px solid oklch(0.69 0.17 48 / .26); outline-off
 .tone-verified .primary-button { background: oklch(0.45 0.105 166); }
 .release-complete { background: var(--verified-soft); }
 .release-complete > svg { color: var(--verified); margin-bottom: 9px; }
+.runtime-status { margin-top: 12px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.runtime-status > span { display: flex; align-items: center; gap: 6px; color: var(--blue); font: 600 8px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.runtime-status > strong { color: var(--muted); font: 600 8px var(--mono); }
+.runtime-status > small { grid-column: 1 / -1; color: var(--muted); font: 400 8px var(--mono); }
+.runtime-status.status-waiting_human { border-left: 3px solid var(--signal); }
+.runtime-status.status-completed { border-left: 3px solid var(--verified); background: var(--verified-soft); }
+.runtime-status.status-failed { border-left: 3px solid var(--rejected); background: var(--rejected-soft); }
 
 .authority-block { display: grid; gap: 9px; margin-top: 20px; }
 .human-authority { display: flex; align-items: center; justify-content: space-between; min-height: 42px; border-bottom: 1px solid var(--line); }
@@ -169,6 +176,7 @@ button:focus-visible { outline: 3px solid oklch(0.69 0.17 48 / .26); outline-off
 .evidence-detail { padding: 36px 42px; border-top: 4px solid var(--signal); }
 .evidence-detail.status-verified { border-top-color: var(--verified); }
 .evidence-detail.status-quarantined { border-top-color: var(--rejected); }
+.artifact-browser .evidence-detail { border-top-color: var(--verified); }
 .document-kicker { display: flex; align-items: center; justify-content: space-between; }
 .document-kicker span, .document-kicker strong { font: 600 8px var(--mono); text-transform: uppercase; letter-spacing: .12em; }
 .document-kicker span { color: var(--muted); }

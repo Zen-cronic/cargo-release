@@ -58,3 +58,29 @@ def test_api_requires_current_version(tmp_path: Path) -> None:
         json={"expected_version": 42, "actor": "stale"},
     )
     assert response.status_code == 409
+
+
+def test_api_one_start_and_one_human_gate_complete_release(tmp_path: Path) -> None:
+    client = TestClient(create_app(str(tmp_path / "runtime.db")))
+    snapshot = client.post("/v1/missions/demo").json()
+    mission_id = snapshot["mission"]["id"]
+
+    response = client.post(f"/v1/missions/{mission_id}:run")
+    assert response.status_code == 200
+    snapshot = response.json()
+    assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
+    assert snapshot["runs"][-1]["status"] == "WAITING_HUMAN"
+
+    response = client.post(
+        f"/v1/missions/{mission_id}/approvals/owner-bond:approve-and-resume",
+        json={
+            "expected_version": snapshot["mission"]["version"],
+            "actor": "cargo-owner.demo",
+        },
+    )
+    assert response.status_code == 200, response.text
+    snapshot = response.json()
+    assert snapshot["mission"]["release_state"] == "RELEASED"
+    assert snapshot["mission"]["adjustment_state"] == "OPEN"
+    assert snapshot["runs"][-1]["status"] == "COMPLETED"
+    assert len(snapshot["artifacts"]) == 3

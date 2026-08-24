@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,14 +13,18 @@ from uuid import uuid4
 from cargo_release.models import (
     AdjustmentState,
     Approval,
+    ArtifactStatus,
     Evidence,
     EvidenceStatus,
     Mission,
+    MissionArtifact,
     MissionEvent,
+    MissionRun,
     MissionSnapshot,
     PartnerReceipt,
     ReceiptKind,
     ReleaseState,
+    RunStatus,
     StoredReceipt,
     TraceSpan,
     TruthMode,
@@ -150,8 +155,157 @@ class SQLiteMissionStore:
                     created_at TEXT NOT NULL,
                     UNIQUE(mission_id, memory_key)
                 );
+                CREATE TABLE IF NOT EXISTS artifacts (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES missions(id),
+                    kind TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    content_json TEXT NOT NULL,
+                    digest TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(mission_id, kind, revision)
+                );
+                CREATE TABLE IF NOT EXISTS mission_runs (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES missions(id),
+                    status TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    steps INTEGER NOT NULL,
+                    started_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS mission_leases (
+                    mission_id TEXT PRIMARY KEY REFERENCES missions(id),
+                    owner TEXT NOT NULL,
+                    expires_at REAL NOT NULL
+                );
                 """
             )
+
+    def acquire_lease(self, mission_id: str, owner: str, ttl_seconds: int = 30) -> bool:
+        now = time.time()
+        with self._transaction() as connection:
+            result = connection.execute(
+                """INSERT INTO mission_leases (mission_id, owner, expires_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(mission_id) DO UPDATE SET owner = excluded.owner,
+                     expires_at = excluded.expires_at
+                   WHERE mission_leases.expires_at < ?""",
+                (mission_id, owner, now + ttl_seconds, now),
+            )
+            return result.rowcount == 1
+
+    def release_lease(self, mission_id: str, owner: str) -> None:
+        with self._transaction() as connection:
+            connection.execute(
+                "DELETE FROM mission_leases WHERE mission_id = ? AND owner = ?",
+                (mission_id, owner),
+            )
+
+    def start_run(self, mission_id: str) -> MissionRun:
+        run = MissionRun(
+            id=f"run-{uuid4().hex[:12]}",
+            mission_id=mission_id,
+            status=RunStatus.RUNNING,
+            reason="BOUNDED_RUNTIME_STARTED",
+            steps=0,
+            started_at=utc_now(),
+            updated_at=utc_now(),
+        )
+        with self._transaction() as connection:
+            connection.execute(
+                """INSERT INTO mission_runs
+                   (id, mission_id, status, reason, steps, started_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    run.id,
+                    run.mission_id,
+                    run.status,
+                    run.reason,
+                    run.steps,
+                    run.started_at,
+                    run.updated_at,
+                ),
+            )
+        return run
+
+    def finish_run(self, run_id: str, status: RunStatus, reason: str, steps: int) -> MissionRun:
+        updated_at = utc_now()
+        with self._transaction() as connection:
+            connection.execute(
+                """UPDATE mission_runs SET status = ?, reason = ?, steps = ?, updated_at = ?
+                   WHERE id = ?""",
+                (status, reason, steps, updated_at, run_id),
+            )
+            row = connection.execute(
+                "SELECT * FROM mission_runs WHERE id = ?", (run_id,)
+            ).fetchone()
+        if row is None:
+            raise StoreError(f"Unknown runtime run: {run_id}")
+        return MissionRun(**dict(row))
+
+    def latest_artifact(self, mission_id: str, kind: str) -> MissionArtifact | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT * FROM artifacts WHERE mission_id = ? AND kind = ?
+                   ORDER BY revision DESC LIMIT 1""",
+                (mission_id, kind),
+            ).fetchone()
+        if row is None:
+            return None
+        return MissionArtifact(**{**dict(row), "content": json.loads(row["content_json"])})
+
+    def save_artifact(
+        self,
+        mission_id: str,
+        kind: str,
+        status: ArtifactStatus,
+        content: dict[str, Any],
+    ) -> MissionArtifact:
+        content_json = json.dumps(content, sort_keys=True, separators=(",", ":"))
+        digest = hashlib.sha256(content_json.encode()).hexdigest()
+        with self._transaction() as connection:
+            row = connection.execute(
+                """SELECT COALESCE(MAX(revision), 0) AS revision FROM artifacts
+                   WHERE mission_id = ? AND kind = ?""",
+                (mission_id, kind),
+            ).fetchone()
+            revision = int(row["revision"]) + 1
+            artifact = MissionArtifact(
+                id=f"artifact-{uuid4().hex[:12]}",
+                mission_id=mission_id,
+                kind=kind,
+                revision=revision,
+                status=status,
+                content=content,
+                digest=digest,
+                created_at=utc_now(),
+            )
+            connection.execute(
+                """INSERT INTO artifacts
+                   (id, mission_id, kind, revision, status, content_json, digest, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    artifact.id,
+                    artifact.mission_id,
+                    artifact.kind,
+                    artifact.revision,
+                    artifact.status,
+                    content_json,
+                    artifact.digest,
+                    artifact.created_at,
+                ),
+            )
+        return artifact
+
+    def set_artifact_status(self, artifact_id: str, status: ArtifactStatus) -> None:
+        with self._transaction() as connection:
+            result = connection.execute(
+                "UPDATE artifacts SET status = ? WHERE id = ?", (status, artifact_id)
+            )
+            if result.rowcount != 1:
+                raise StoreError(f"Unknown artifact: {artifact_id}")
 
     @staticmethod
     def _append_event(
@@ -439,6 +593,16 @@ class SQLiteMissionStore:
             trace_rows = connection.execute(
                 "SELECT * FROM traces WHERE mission_id = ? ORDER BY created_at, id", (mission_id,)
             ).fetchall()
+            artifact_rows = connection.execute(
+                """SELECT * FROM artifacts WHERE mission_id = ?
+                   ORDER BY kind, revision""",
+                (mission_id,),
+            ).fetchall()
+            run_rows = connection.execute(
+                """SELECT * FROM mission_runs WHERE mission_id = ?
+                   ORDER BY started_at""",
+                (mission_id,),
+            ).fetchall()
 
         return MissionSnapshot(
             mission=Mission(**dict(mission_row)),
@@ -470,4 +634,9 @@ class SQLiteMissionStore:
                 TraceSpan(**{**dict(row), "detail": json.loads(row["detail_json"])})
                 for row in trace_rows
             ],
+            artifacts=[
+                MissionArtifact(**{**dict(row), "content": json.loads(row["content_json"])})
+                for row in artifact_rows
+            ],
+            runs=[MissionRun(**dict(row)) for row in run_rows],
         )

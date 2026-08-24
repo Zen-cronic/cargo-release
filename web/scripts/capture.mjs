@@ -12,17 +12,7 @@ await page.getByRole("heading", { name: "Cargo held at North Harbor" }).waitFor(
 await page.screenshot({ path: `${output}/held.png`, fullPage: true });
 
 const action = page.getByTestId("primary-action");
-for (const label of [
-  "Reconcile evidence",
-  "Approve owner bond",
-  "Request insurer guarantee",
-  "Submit full security",
-  "Send to adjuster",
-  "Apply requested correction",
-  "Resubmit to adjuster",
-  "Request carrier release",
-  "Verify carrier read-back",
-]) {
+for (const label of ["Start autonomous mission", "Approve bond & resume"]) {
   await action.getByText(label, { exact: true }).waitFor();
   await action.click();
 }
