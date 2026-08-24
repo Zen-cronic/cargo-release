@@ -5,11 +5,31 @@ from typing import Any
 
 import httpx
 from google.adk.agents import Agent
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+
+
+def _controller_headers(base_url: str) -> dict[str, str]:
+    if not base_url.startswith("https://"):
+        return {}
+    audience = os.getenv(
+        "CARGO_RELEASE_CONTROLLER_AUDIENCE", f"{base_url.rstrip('/')}/"
+    )
+    token: str = id_token.fetch_id_token(  # type: ignore[no-untyped-call]
+        Request(), audience
+    )
+    return {"X-Serverless-Authorization": f"Bearer {token}"}
 
 
 def _controller_request(path: str, payload: dict[str, object] | None = None) -> dict[str, Any]:
-    base_url = os.getenv("CARGO_RELEASE_CONTROLLER_URL", "http://127.0.0.1:8095")
-    with httpx.Client(base_url=base_url, timeout=30) as client:
+    base_url = os.getenv("CARGO_RELEASE_CONTROLLER_URL", "http://127.0.0.1:8095").rstrip(
+        "/"
+    )
+    with httpx.Client(
+        base_url=base_url,
+        headers=_controller_headers(base_url),
+        timeout=30,
+    ) as client:
         response = client.post(path, json=payload)
         response.raise_for_status()
         return response.json()  # type: ignore[no-any-return]
@@ -24,15 +44,21 @@ def start_bounded_mission(mission_id: str) -> dict[str, Any]:
 def inspect_mission(mission_id: str) -> dict[str, Any]:
     """Return the current durable release state, evidence, artifacts, and receipts."""
 
-    base_url = os.getenv("CARGO_RELEASE_CONTROLLER_URL", "http://127.0.0.1:8095")
-    with httpx.Client(base_url=base_url, timeout=30) as client:
+    base_url = os.getenv("CARGO_RELEASE_CONTROLLER_URL", "http://127.0.0.1:8095").rstrip(
+        "/"
+    )
+    with httpx.Client(
+        base_url=base_url,
+        headers=_controller_headers(base_url),
+        timeout=30,
+    ) as client:
         response = client.get(f"/v1/missions/{mission_id}")
         response.raise_for_status()
         return response.json()  # type: ignore[no-any-return]
 
 
 root_agent = Agent(
-    model=os.getenv("CARGO_RELEASE_MODEL", "gemini-3.5-flash"),
+    model=os.getenv("CARGO_RELEASE_MODEL", "gemini-2.5-flash"),
     name="cargo_release_coordinator",
     description="Coordinates a receipt-gated General Average cargo release mission.",
     instruction="""
