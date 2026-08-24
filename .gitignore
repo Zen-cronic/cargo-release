@@ -18,3 +18,7 @@ test-results/
 docs/
 BUILD_CHECKPOINT.md
 var/
+
+.claude
+.codex
+dist/
