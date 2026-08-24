@@ -1,0 +1,41 @@
+[project]
+name = "cargo-release"
+version = "0.1.0"
+description = "Receipt-gated institutional agent mission for General Average cargo release"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi>=0.116.0,<1.0.0",
+  "httpx>=0.28.0,<1.0.0",
+  "pydantic>=2.11.0,<3.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [{ include = "cargo_release", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.17.0"
+pytest = "^8.4.0"
+pytest-cov = "^6.2.0"
+ruff = "^0.12.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["cargo_release"]
