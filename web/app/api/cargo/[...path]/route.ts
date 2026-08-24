@@ -23,6 +23,32 @@ function isLocal(url: URL): boolean {
   return url.hostname === "127.0.0.1" || url.hostname === "localhost";
 }
 
+function controllerAudience(controller: URL): string {
+  const configured = process.env.CARGO_RELEASE_CONTROLLER_AUDIENCE;
+  if (!configured) return controller.origin;
+
+  const audience = new URL(configured);
+  if (audience.protocol !== "https:") {
+    throw new Error("CARGO_RELEASE_CONTROLLER_AUDIENCE must use HTTPS");
+  }
+  return audience.href;
+}
+
+function safeIdentityClaims(authorization: string): { aud?: unknown; email?: unknown } {
+  try {
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    const payload = token.split(".")[1];
+    if (!payload) return {};
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      aud?: unknown;
+      email?: unknown;
+    };
+    return { aud: claims.aud, email: claims.email };
+  } catch {
+    return {};
+  }
+}
+
 async function relay(request: NextRequest, context: RouteContext): Promise<Response> {
   const { path } = await context.params;
   if (!path.length || path.some((segment) => segment === "." || segment === "..")) {
@@ -39,9 +65,22 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
 
   if (!isLocal(controller)) {
     const auth = new GoogleAuth();
-    const client = await auth.getIdTokenClient(controller.origin);
-    const identityHeaders = await client.getRequestHeaders(controller.origin);
-    identityHeaders.forEach((value, name) => headers.set(name, value));
+    const audience = controllerAudience(controller);
+    const client = await auth.getIdTokenClient(audience);
+    const identityHeaders = await client.getRequestHeaders(audience);
+    const authorization = identityHeaders.get("authorization");
+    if (!authorization) {
+      throw new Error("Google identity client returned no authorization header");
+    }
+    headers.set("x-serverless-authorization", authorization);
+    console.info(
+      JSON.stringify({
+        event: "cargo_release_relay_attempt",
+        target: target.toString(),
+        requested_audience: audience,
+        token: safeIdentityClaims(authorization),
+      }),
+    );
   }
 
   const method = request.method.toUpperCase();
@@ -52,6 +91,15 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
     cache: "no-store",
     redirect: "manual",
   });
+
+  console.info(
+    JSON.stringify({
+      event: "cargo_release_relay_response",
+      target: target.toString(),
+      status: upstream.status,
+      trace: upstream.headers.get("x-cloud-trace-context"),
+    }),
+  );
 
   const responseHeaders = new Headers();
   const upstreamContentType = upstream.headers.get("content-type");

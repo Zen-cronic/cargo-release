@@ -68,6 +68,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
     async def handle_security_error(_request: Request, error: ReceiptSecurityError) -> JSONResponse:
         return JSONResponse(status_code=401, content={"detail": str(error)})
 
+    @app.get("/health")
     @app.get("/healthz")
     def health() -> dict[str, str]:
         return {"status": "ok", "mode": "FIXTURE"}
