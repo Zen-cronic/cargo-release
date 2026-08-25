@@ -7,6 +7,8 @@ from typing import Any
 import pytest
 from google.adk.agents import Agent
 from google.adk.models import Gemini
+from google.genai import _transformers
+from pydantic import ValidationError
 
 from cargo_release import adk_agent
 
@@ -164,6 +166,28 @@ def test_coordinator_delegates_to_four_separately_scoped_workers() -> None:
         tool for tool in adk_agent.root_agent.tools if callable(tool)
     ]
     assert coordinator_callables == [adk_agent.start_bounded_mission]
+
+
+def test_scoped_worker_schema_is_managed_genai_compatible_and_fail_closed() -> None:
+    schema = adk_agent.ScopedWorkerReport.model_json_schema()
+
+    _transformers.process_schema(schema, client=None)
+
+    release_authority = schema["properties"]["release_authority"]
+    assert release_authority["type"] == "boolean"
+    assert "const" not in release_authority
+    with pytest.raises(
+        ValidationError,
+        match="scoped workers cannot hold release authority",
+    ):
+        adk_agent.ScopedWorkerReport(
+            worker="manifest_evidence_worker",
+            mission_id="mission-abe2d197faad",
+            status="VERIFIED",
+            summary="Managed schema compatibility probe",
+            next_action="RETURN_TO_COORDINATOR",
+            release_authority=True,
+        )
 
 
 def test_scoped_workers_never_expose_untrusted_text_payloads_or_signatures(

@@ -12,7 +12,7 @@ from google.adk.models import Gemini
 from google.adk.tools.base_tool import BaseTool
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 DEFAULT_MODEL = "gemini-3.5-flash"
 DEFAULT_MODEL_LOCATION = "global"
@@ -46,7 +46,22 @@ class ScopedWorkerReport(BaseModel):
         "NO_ACTION",
         "MANUAL_REVIEW",
     ]
-    release_authority: Literal[False] = False
+    release_authority: bool = Field(default=False, strict=True)
+
+    @field_validator("release_authority")
+    @classmethod
+    def require_zero_release_authority(cls, value: bool) -> bool:
+        """Keep the invariant without a non-string JSON Schema const.
+
+        Google Gen AI's managed schema converter accepts singleton string
+        literals but rejects ``Literal[False]`` before a dynamic ADK worker can
+        run. A strict boolean plus runtime validation preserves the fail-closed
+        contract while producing a managed-compatible boolean schema.
+        """
+
+        if value is not False:
+            raise ValueError("scoped workers cannot hold release authority")
+        return value
 
 
 def _require_eligible_model(model: str) -> str:
