@@ -33,17 +33,29 @@ test("architecture truth and quarantined evidence stay inspectable", async ({ pa
   );
 });
 
-test("Gemma review is visible but cannot authorize cargo", async ({ page }) => {
+test("advisory models are visible but cannot authorize cargo", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("primary-action").click();
-  await page.getByRole("button", { name: "AI checks 1", exact: true }).click();
+  await page.getByRole("button", { name: "AI checks 2", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Second opinion, zero authority" })).toBeVisible();
   await expect(page.getByText("google/gemma-4-26b-a4b-it-maas", { exact: true })).toBeVisible();
-  await expect(page.getByText(/release_authority=false/)).toBeVisible();
+  const authorityBoundaries = page.getByText(/release_authority=false/);
+  await expect(authorityBoundaries).toHaveCount(2);
+  await expect(authorityBoundaries.first()).toBeVisible();
+  await expect(authorityBoundaries.nth(1)).toBeVisible();
   await expect(
     page.getByText("SECURITY_AMOUNT_PROVENANCE_MISSING", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("gemini-embedding-2", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Nearest reviewed synthetic examples—not precedent or recommendation", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("reviewed-provenance-005", { exact: true })).toBeVisible();
+  await expect(page.getByText("8 reviewed cases", { exact: true })).toBeVisible();
+  await expect(page.getByText("scores withheld", { exact: true })).toBeVisible();
   await expect(page.getByText("PHYSICAL RELEASE: HELD", { exact: false })).toBeVisible();
   await expect(page.getByTestId("primary-action")).toContainText("Approve bond & resume");
 });

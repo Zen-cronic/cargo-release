@@ -8,6 +8,11 @@ from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from cargo_release.case_retrieval import (
+    CaseRetrievalPort,
+    CaseRetrievalService,
+    build_case_retrieval,
+)
 from cargo_release.cloud_context import eventarc_truth_mode
 from cargo_release.engine import CargoReleaseEngine, DomainError, IdentityError
 from cargo_release.gemma_critic import (
@@ -46,6 +51,7 @@ def create_app(
     *,
     notification_port: OperatorNotificationPort | None = None,
     gemma_critic: GemmaCriticPort | None = None,
+    case_retrieval: CaseRetrievalPort | None = None,
 ) -> FastAPI:
     store = build_mission_store(database_path)
     engine = CargoReleaseEngine(store)
@@ -54,6 +60,13 @@ def create_app(
         store, notification_port or build_notification_port()
     )
     critic = GemmaCriticService(store, gemma_critic or build_gemma_critic())
+    retrieval = CaseRetrievalService(store, case_retrieval or build_case_retrieval())
+
+    def postprocess(snapshot: MissionSnapshot) -> MissionSnapshot:
+        reviewed = critic.maybe_review_gate(snapshot.mission.id)
+        retrieved = retrieval.maybe_retrieve(reviewed.mission.id)
+        return notifications.maybe_deliver_release(retrieved.mission.id)
+
     app = FastAPI(
         title="Cargo Release Mission API",
         version="0.1.0",
@@ -63,10 +76,7 @@ def create_app(
     app.state.runtime = runtime
     app.state.notifications = notifications
     app.state.gemma_critic = critic
-
-    def postprocess(snapshot: MissionSnapshot) -> MissionSnapshot:
-        reviewed = critic.maybe_review_gate(snapshot.mission.id)
-        return notifications.maybe_deliver_release(reviewed.mission.id)
+    app.state.case_retrieval = retrieval
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3024", "http://localhost:3024"],
@@ -162,6 +172,19 @@ def create_app(
                 "confirm_non_authoritative=true is required; model output cannot authorize cargo"
             )
         return critic.maybe_review_gate(mission_id, retry=True, actor=action.actor)
+
+    @app.post(
+        "/v1/missions/{mission_id}/models/case-retrieval:retry",
+        response_model=MissionSnapshot,
+    )
+    def retry_case_retrieval(
+        mission_id: str, action: NonAuthoritativeModelAction
+    ) -> MissionSnapshot:
+        if not action.confirm_non_authoritative:
+            raise DomainError(
+                "confirm_non_authoritative=true is required; retrieval cannot authorize cargo"
+            )
+        return retrieval.maybe_retrieve(mission_id, retry=True, actor=action.actor)
 
     @app.post("/v1/missions/{mission_id}/approvals/owner-bond", response_model=MissionSnapshot)
     def approve(mission_id: str, action: VersionedAction) -> MissionSnapshot:

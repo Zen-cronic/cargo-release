@@ -233,6 +233,14 @@ interface CriticFindingView {
   uncertainty: string;
 }
 
+interface RetrievedCaseView {
+  rank: number;
+  case_id: string;
+  title: string;
+  reviewed_outcome: string;
+  key_difference: string;
+}
+
 function criticFindings(result: Record<string, unknown>): CriticFindingView[] {
   if (!Array.isArray(result.findings)) return [];
   return result.findings.flatMap((value) => {
@@ -249,19 +257,44 @@ function criticFindings(result: Record<string, unknown>): CriticFindingView[] {
   });
 }
 
+function retrievedCases(result: Record<string, unknown>): RetrievedCaseView[] {
+  if (!Array.isArray(result.top_cases)) return [];
+  return result.top_cases.flatMap((value) => {
+    if (!value || typeof value !== "object") return [];
+    const item = value as Record<string, unknown>;
+    return [{
+      rank: Number(item.rank ?? 0),
+      case_id: String(item.case_id ?? "unknown-case"),
+      title: String(item.title ?? "Reviewed synthetic case"),
+      reviewed_outcome: String(item.reviewed_outcome ?? "No reviewed outcome supplied."),
+      key_difference: String(item.key_difference ?? "Compare the source facts directly."),
+    }];
+  });
+}
+
 function ModelReviewPanel({ snapshot }: { snapshot: MissionSnapshot }) {
-  const receipt = snapshot.model_receipts?.filter((item) => item.kind === "GEMMA_RELEASE_CRITIC").at(-1);
-  if (!receipt) return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="The Gemma critic runs on the sanitized packet at the owner-attestation gate. Disabled or unavailable model checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed critic receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only review.</p></div></div>;
-  const findings = criticFindings(receipt.result);
-  const summary = String(receipt.result.summary ?? (receipt.status === "DEGRADED" ? "The critic is unavailable; the deterministic workflow is unaffected." : "Review completed."));
-  return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized, immutable release packet. Humans and verified partner receipts remain the only release keys." />
-    <article className={`model-receipt status-${receipt.status.toLowerCase()}`}>
-      <div className="model-receipt-head"><span className="model-icon"><BrainCircuit size={20} /></span><div><small>Google AI model receipt</small><strong>{receipt.model_id}</strong><code>{receipt.location} · {receipt.request_ref}</code></div><TruthBadge mode={receipt.truth_mode} /></div>
+  const gemma = snapshot.model_receipts?.filter((item) => item.kind === "GEMMA_RELEASE_CRITIC").at(-1);
+  const retrieval = snapshot.model_receipts?.filter((item) => item.kind === "GEMINI_EMBEDDING_RETRIEVAL").at(-1);
+  if (!gemma && !retrieval) return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="Optional model checks run only on sanitized packets. Disabled or unavailable checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed advisory receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only checks.</p></div></div>;
+  const findings = gemma ? criticFindings(gemma.result) : [];
+  const summary = gemma ? String(gemma.result.summary ?? (gemma.status === "DEGRADED" ? "The critic is unavailable; the deterministic workflow is unaffected." : "Review completed.")) : "";
+  const examples = retrieval ? retrievedCases(retrieval.result) : [];
+  return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized packet. Embedding 2 ranks reviewed synthetic examples. Humans and verified partner receipts remain the only release keys." />
+    {gemma && <article className={`model-receipt status-${gemma.status.toLowerCase()}`}>
+      <div className="model-receipt-head"><span className="model-icon"><BrainCircuit size={20} /></span><div><small>Proposal checklist receipt</small><strong>{gemma.model_id}</strong><code>{gemma.location} · {gemma.request_ref}</code></div><TruthBadge mode={gemma.truth_mode} /></div>
       <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · no tools · no state transition · no partner contact</span></div>
       <p className="model-summary">{summary}</p>
-      {receipt.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Advisory unavailable</strong><p>{String(receipt.result.error_type ?? "Managed model error")} · release_affected=false · explicit retry available through the API.</p></div></div> : <div className="critic-findings">{findings.map((finding) => <article key={`${finding.finding_code}-${finding.evidence_refs.join("-")}`}><header><span>{finding.severity}</span><code>{finding.finding_code}</code></header><strong>{finding.finding}</strong><p><b>Operator:</b> {finding.operator_action}</p><p><b>Uncertainty:</b> {finding.uncertainty}</p><small>{finding.evidence_refs.join(" · ") || "packet-level finding"}</small></article>)}</div>}
-      <div className="model-digests"><span>Input <code>sha256:{receipt.input_digest}</code></span><span>Output <code>sha256:{receipt.output_digest}</code></span></div>
-    </article>
+      {gemma.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Advisory unavailable</strong><p>{String(gemma.result.error_type ?? "Managed model error")} · release_affected=false · explicit retry available through the API.</p></div></div> : <div className="critic-findings">{findings.map((finding) => <article key={`${finding.finding_code}-${finding.evidence_refs.join("-")}`}><header><span>{finding.severity}</span><code>{finding.finding_code}</code></header><strong>{finding.finding}</strong><p><b>Operator:</b> {finding.operator_action}</p><p><b>Uncertainty:</b> {finding.uncertainty}</p><small>{finding.evidence_refs.join(" · ") || "packet-level finding"}</small></article>)}</div>}
+      <div className="model-digests"><span>Input <code>sha256:{gemma.input_digest}</code></span><span>Output <code>sha256:{gemma.output_digest}</code></span></div>
+    </article>}
+    {retrieval && <article className={`model-receipt retrieval-receipt status-${retrieval.status.toLowerCase()}`}>
+      <div className="model-receipt-head"><span className="model-icon retrieval-icon"><Layers3 size={20} /></span><div><small>Reviewed-case ranking receipt</small><strong>{retrieval.model_id}</strong><code>{retrieval.location} · {retrieval.request_ref}</code></div><TruthBadge mode={retrieval.truth_mode} /></div>
+      <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · rank only · no threshold · no state branch</span></div>
+      <p className="retrieval-label">Nearest reviewed synthetic examples—not precedent or recommendation</p>
+      {retrieval.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Retrieval unavailable</strong><p>{String(retrieval.result.error_type ?? "Managed embedding error")} · release_affected=false · explicit retry available through the API.</p></div></div> : <div className="retrieval-cases">{examples.map((item) => <article key={item.case_id}><span className="retrieval-rank">#{item.rank}</span><div><code>{item.case_id}</code><strong>{item.title}</strong><p>{item.reviewed_outcome}</p><small><b>Different here:</b> {item.key_difference}</small></div></article>)}</div>}
+      <div className="retrieval-meta"><span>{String(retrieval.result.dimensions ?? "—")} dimensions</span><span>{String(retrieval.result.corpus_size ?? "—")} reviewed cases</span><span>scores withheld</span></div>
+      <div className="model-digests"><span>Input <code>sha256:{retrieval.input_digest}</code></span><span>Output <code>sha256:{retrieval.output_digest}</code></span></div>
+    </article>}
   </div>;
 }
 
@@ -347,7 +380,8 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Agent Observability", "OpenTelemetry topology, traces, and security spans", "ADAPTER"],
       ["Partner Cloud Run", "Independent insurer, adjuster, and carrier fixtures", "FIXTURE"],
       ["Operator notification", "Allowlisted Slack webhook; marked synthetic and post-release only", snapshot.notifications?.at(-1)?.truth_mode ?? "FIXTURE"],
-      ["Gemma 4 critic", "Sanitized proposal review; durable receipt, no tools or authority", snapshot.model_receipts?.at(-1)?.truth_mode ?? "ADAPTER"],
+      ["Gemma 4 critic", "Sanitized proposal review; durable receipt, no tools or authority", snapshot.model_receipts?.find((item) => item.kind === "GEMMA_RELEASE_CRITIC")?.truth_mode ?? "ADAPTER"],
+      ["Embedding 2 retrieval", "Reviewed synthetic top-k context; rank only, no threshold or precedent", snapshot.model_receipts?.find((item) => item.kind === "GEMINI_EMBEDDING_RETRIEVAL")?.truth_mode ?? "ADAPTER"],
     ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
   </aside></div>;
 }

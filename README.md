@@ -36,7 +36,9 @@ execution evidence:
 - Cloud SQL for PostgreSQL persists deterministic authority plus separately labeled advisory
   model receipts across revisions and concurrent instances;
 - managed Gemma 4 (`google/gemma-4-26b-a4b-it-maas`) reviews only a sanitized owner-bond packet
-  at the human gate, exposes no tools, and records `release_authority=false`; and
+  at the human gate, exposes no tools, and records `release_authority=false`;
+- Gemini Embedding 2 ranks a filtered corpus of reviewed synthetic cases without exposing scores,
+  thresholds, precedent claims, or state authority; and
 - Agent Registry, Agent Gateway, Model Armor, and Agent Observability provide discovery,
   policy-enforced routing, inline screening, and end-to-end telemetry.
 
@@ -57,6 +59,18 @@ The managed path instead sets `CARGO_RELEASE_MODEL_PROJECT`, uses the exact glob
 and relies on the controller's attached Google identity. A degraded model call remains visible but
 never blocks, approves, or advances cargo. The explicit retry endpoint requires
 `confirm_non_authoritative=true`.
+
+Enable the deterministic reviewed-case fixture with:
+
+```bash
+export CARGO_RELEASE_EMBEDDING_RETRIEVAL_ENABLED=1
+export CARGO_RELEASE_EMBEDDING_RETRIEVAL_MODE=FIXTURE
+```
+
+The managed retrieval path uses `gemini-embedding-2` at `global` with 128 dimensions. It embeds a
+sanitized query and eight reviewed synthetic examples, retains the vector-set digest, and shows
+only ordinal top-k results plus factual differences. Similarity scores never appear as confidence,
+probability, precedent, or a release branch.
 
 ## Local frontend
 
@@ -82,13 +96,14 @@ npm run build
 npm run test:e2e
 ```
 
-Current Gemma checkpoint: 32 default backend/API/partner/model tests pass, plus five isolated
-PostgreSQL acceptance tests (`37 passed` total). Four Playwright journeys cover the
+Current model checkpoint: 37 default backend/API/partner/model tests pass, plus five isolated
+PostgreSQL acceptance tests (`42 passed` total). Four Playwright journeys cover the
 one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine,
 architecture truth labels, and the visible zero-authority Gemma receipt. The backend suite also
 covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed
-memory, private-partner selection, native provenance propagation, sanitized critic input,
-degraded-mode continuity, receipt idempotency, and PostgreSQL restart persistence.
+memory, private-partner selection, native provenance propagation, sanitized model input,
+rank-only reviewed-case retrieval, degraded-mode continuity, receipt idempotency, and PostgreSQL
+restart persistence.
 
 ## Truth labels
 
