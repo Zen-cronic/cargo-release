@@ -17,6 +17,10 @@ test-results/
 *.tsbuildinfo
 .playwright-mcp/
 docs/
+!docs/
+docs/*
+!docs/design-brief.md
+!docs/architecture.svg
 BUILD_CHECKPOINT.md
 DESIGN_BRIEF.md
 var/
