@@ -93,12 +93,14 @@ backend_build="$(gcloud builds submit . \
   --project="${GOOGLE_CLOUD_PROJECT}" \
   --region="${GOOGLE_CLOUD_LOCATION}" \
   --tag="${BACKEND_TAG}" \
+  --suppress-logs \
   --format='value(id)' \
   --quiet)"
 web_build="$(gcloud builds submit web \
   --project="${GOOGLE_CLOUD_PROJECT}" \
   --region="${GOOGLE_CLOUD_LOCATION}" \
   --tag="${WEB_TAG}" \
+  --suppress-logs \
   --format='value(id)' \
   --quiet)"
 
