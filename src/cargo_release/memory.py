@@ -6,7 +6,7 @@ from typing import Protocol
 import vertexai
 
 from cargo_release.models import MissionSnapshot
-from cargo_release.store import SQLiteMissionStore
+from cargo_release.store import MissionStore
 
 
 class ReviewedMemoryPort(Protocol):
@@ -29,7 +29,7 @@ def _verified_release_fact(snapshot: MissionSnapshot) -> dict[str, object]:
 
 
 class LocalReviewedMemory:
-    def __init__(self, store: SQLiteMissionStore) -> None:
+    def __init__(self, store: MissionStore) -> None:
         self.store = store
 
     def remember_release_context(self, snapshot: MissionSnapshot) -> str:
@@ -40,11 +40,11 @@ class LocalReviewedMemory:
             _verified_release_fact(snapshot),
             "policy:release-readback-v1",
         )
-        return f"sqlite-memory://{snapshot.mission.id}/{key}"
+        return f"reviewed-memory://{snapshot.mission.id}/{key}"
 
 
 class AgentPlatformMemoryBank(LocalReviewedMemory):
-    def __init__(self, store: SQLiteMissionStore, project: str, location: str, name: str) -> None:
+    def __init__(self, store: MissionStore, project: str, location: str, name: str) -> None:
         super().__init__(store)
         self.client = vertexai.Client(project=project, location=location)
         self.name = name
@@ -71,7 +71,7 @@ class AgentPlatformMemoryBank(LocalReviewedMemory):
         return str(operation.name)
 
 
-def build_memory_port(store: SQLiteMissionStore) -> ReviewedMemoryPort:
+def build_memory_port(store: MissionStore) -> ReviewedMemoryPort:
     project = os.getenv("GOOGLE_CLOUD_PROJECT")
     name = os.getenv("CARGO_RELEASE_MEMORY_BANK")
     if project and name:

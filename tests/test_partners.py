@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from cargo_release.models import PartnerReceipt, ReceiptKind
 from cargo_release.partners import (
     PARTNER_SECRETS,
@@ -10,10 +8,11 @@ from cargo_release.partners import (
     create_insurer_app,
 )
 from cargo_release.security import verify_receipt
+from tests.asgi_client import ASGITestClient
 
 
 def test_insurer_sandbox_enforces_owner_approval_and_signs_receipt() -> None:
-    client = TestClient(create_insurer_app())
+    client = ASGITestClient(create_insurer_app())
     body = {"mission_id": "mission-demo", "case_ref": "GA-DEMO", "owner_bond_approved": False}
     assert client.post("/v1/guarantees:issue", json=body).status_code == 409
     body["owner_bond_approved"] = True
@@ -25,7 +24,7 @@ def test_insurer_sandbox_enforces_owner_approval_and_signs_receipt() -> None:
 
 
 def test_adjuster_sandbox_issues_rejection_then_acceptance() -> None:
-    client = TestClient(create_adjuster_app())
+    client = ASGITestClient(create_adjuster_app())
     body = {
         "mission_id": "mission-demo",
         "case_ref": "GA-DEMO",
@@ -41,7 +40,7 @@ def test_adjuster_sandbox_issues_rejection_then_acceptance() -> None:
 
 
 def test_carrier_sandbox_separates_order_from_readback() -> None:
-    client = TestClient(create_carrier_app())
+    client = ASGITestClient(create_carrier_app())
     order_response = client.post(
         "/v1/releases:issue",
         json={

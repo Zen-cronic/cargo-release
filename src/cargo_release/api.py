@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-import os
 
 from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,16 +26,11 @@ from cargo_release.partners import (
 )
 from cargo_release.runtime import MissionOrchestrator
 from cargo_release.security import ReceiptSecurityError
-from cargo_release.store import MissionNotFound, SQLiteMissionStore, StoreError
+from cargo_release.store import MissionNotFound, StoreError, build_mission_store
 
 
 def create_app(database_path: str | None = None) -> FastAPI:
-    path: str = (
-        database_path
-        if database_path is not None
-        else os.environ.get("CARGO_RELEASE_DB", "var/cargo-release.db")
-    )
-    store = SQLiteMissionStore(path)
+    store = build_mission_store(database_path)
     engine = CargoReleaseEngine(store)
     runtime = MissionOrchestrator(engine)
     app = FastAPI(
@@ -71,7 +65,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
     @app.get("/health")
     @app.get("/healthz")
     def health() -> dict[str, str]:
-        return {"status": "ok", "mode": "FIXTURE"}
+        return {"status": "ok", "mode": "FIXTURE", "database": store.backend}
 
     @app.post("/v1/missions/demo", response_model=MissionSnapshot)
     def create_demo() -> MissionSnapshot:
@@ -93,28 +87,25 @@ def create_app(database_path: str | None = None) -> FastAPI:
         except (ValueError, json.JSONDecodeError) as error:
             raise DomainError("Pub/Sub data must be base64-encoded casualty JSON") from error
         mission_id = f"mission-{hashlib.sha256(ce_id.encode()).hexdigest()[:12]}"
-        try:
-            return store.snapshot(mission_id)
-        except MissionNotFound:
-            truth_mode = eventarc_truth_mode(
-                event_id=ce_id,
-                event_source=ce_source,
-                trace_context=trace_context,
-            )
-            store.create_demo_mission(
-                mission_id,
-                truth_mode,
-                {
-                    "cloud_event_id": ce_id,
-                    "cloud_event_source": ce_source,
-                    "cloud_event_type": ce_type,
-                    "cloud_trace_context": trace_context,
-                    "source_ref": event.source_ref,
-                    "declared_vessel": event.vessel,
-                    "declared_container": event.container_ref,
-                },
-            )
-            return runtime.run(mission_id)
+        truth_mode = eventarc_truth_mode(
+            event_id=ce_id,
+            event_source=ce_source,
+            trace_context=trace_context,
+        )
+        snapshot, created = store.create_or_load_demo_mission(
+            mission_id,
+            truth_mode,
+            {
+                "cloud_event_id": ce_id,
+                "cloud_event_source": ce_source,
+                "cloud_event_type": ce_type,
+                "cloud_trace_context": trace_context,
+                "source_ref": event.source_ref,
+                "declared_vessel": event.vessel,
+                "declared_container": event.container_ref,
+            },
+        )
+        return runtime.run(mission_id) if created else snapshot
 
     @app.get("/v1/missions/{mission_id}", response_model=MissionSnapshot)
     def get_mission(mission_id: str) -> MissionSnapshot:

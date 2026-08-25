@@ -65,6 +65,9 @@ managed_surfaces:
     current_local_mode: ADAPTER
 state_authority:
   owner: deterministic controller
+  database: cloud-sql-postgresql
+  managed_requirement: CARGO_RELEASE_DB_HOST must resolve to the Cloud SQL Unix socket
+  local_fixture: SQLite is permitted only outside managed Cloud Run
   rule: model output and Memory Bank cannot mutate release state
   release_prerequisites:
     - adjuster acceptance receipt

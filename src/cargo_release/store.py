@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import time
 from collections.abc import Iterator
@@ -9,6 +10,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+import psycopg
+from psycopg.rows import dict_row
 
 from cargo_release.models import (
     AdjustmentState,
@@ -49,6 +53,8 @@ class InvalidTransition(StoreError):
 
 
 class SQLiteMissionStore:
+    backend = "sqlite"
+
     def __init__(self, path: str) -> None:
         self.path = path
         Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -376,6 +382,14 @@ class SQLiteMissionStore:
         truth_mode: TruthMode = TruthMode.FIXTURE,
         trigger_context: dict[str, Any] | None = None,
     ) -> MissionSnapshot:
+        return self.create_or_load_demo_mission(mission_id, truth_mode, trigger_context)[0]
+
+    def create_or_load_demo_mission(
+        self,
+        mission_id: str,
+        truth_mode: TruthMode = TruthMode.FIXTURE,
+        trigger_context: dict[str, Any] | None = None,
+    ) -> tuple[MissionSnapshot, bool]:
         now = utc_now()
         case_ref = f"GA-2026-{mission_id[-6:].upper()}"
         evidence = [
@@ -415,9 +429,11 @@ class SQLiteMissionStore:
                 },
             ),
         ]
+        created = False
         with self._transaction() as connection:
-            connection.execute(
-                """INSERT INTO missions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            result = connection.execute(
+                """INSERT INTO missions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT DO NOTHING""",
                 (
                     mission_id,
                     case_ref,
@@ -431,39 +447,41 @@ class SQLiteMissionStore:
                     now,
                 ),
             )
-            for slug, kind, filename, status, summary, facts in evidence:
-                content_hash = hashlib.sha256(
-                    json.dumps(facts, sort_keys=True).encode()
-                ).hexdigest()
-                connection.execute(
-                    """INSERT INTO evidence
-                       (id, mission_id, kind, filename, sha256, status, summary,
-                        facts_json, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        f"ev-{slug}-{mission_id[-6:]}",
-                        mission_id,
-                        kind,
-                        filename,
-                        content_hash,
-                        status,
-                        summary,
-                        json.dumps(facts, sort_keys=True),
-                        now,
-                    ),
+            created = result.rowcount == 1
+            if created:
+                for slug, kind, filename, status, summary, facts in evidence:
+                    content_hash = hashlib.sha256(
+                        json.dumps(facts, sort_keys=True).encode()
+                    ).hexdigest()
+                    connection.execute(
+                        """INSERT INTO evidence
+                           (id, mission_id, kind, filename, sha256, status, summary,
+                            facts_json, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            f"ev-{slug}-{mission_id[-6:]}",
+                            mission_id,
+                            kind,
+                            filename,
+                            content_hash,
+                            status,
+                            summary,
+                            json.dumps(facts, sort_keys=True),
+                            now,
+                        ),
+                    )
+                self._append_event(
+                    connection,
+                    mission_id,
+                    "MISSION_DECLARED",
+                    "eventarc.native" if truth_mode is TruthMode.NATIVE else "eventarc.fixture",
+                    {
+                        "case_ref": case_ref,
+                        "evidence_count": len(evidence),
+                        **(trigger_context or {}),
+                    },
                 )
-            self._append_event(
-                connection,
-                mission_id,
-                "MISSION_DECLARED",
-                "eventarc.native" if truth_mode is TruthMode.NATIVE else "eventarc.fixture",
-                {
-                    "case_ref": case_ref,
-                    "evidence_count": len(evidence),
-                    **(trigger_context or {}),
-                },
-            )
-        return self.snapshot(mission_id)
+        return self.snapshot(mission_id), created
 
     def mutate(
         self,
@@ -557,12 +575,30 @@ class SQLiteMissionStore:
         target_state: ReleaseState | None,
         required_receipt: ReceiptKind | None = None,
     ) -> tuple[MissionSnapshot, bool]:
+        created = False
         with self._transaction() as connection:
-            duplicate = connection.execute(
-                "SELECT id FROM receipts WHERE issuer = ? AND external_id = ?",
-                (receipt.issuer, receipt.external_id),
-            ).fetchone()
-            if duplicate:
+            result = connection.execute(
+                """INSERT INTO receipts
+                   (id, mission_id, kind, issuer, external_id, subject_ref, status, issued_at,
+                    payload_json, signature, verified, digest)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                   ON CONFLICT(issuer, external_id) DO NOTHING""",
+                (
+                    f"receipt-{uuid4().hex[:12]}",
+                    receipt.mission_id,
+                    receipt.kind,
+                    receipt.issuer,
+                    receipt.external_id,
+                    receipt.subject_ref,
+                    receipt.status,
+                    receipt.issued_at,
+                    json.dumps(receipt.payload, sort_keys=True),
+                    receipt.signature,
+                    digest,
+                ),
+            )
+            created = result.rowcount == 1
+            if not created:
                 return self.snapshot(receipt.mission_id), False
             row = connection.execute(
                 "SELECT release_state, version FROM missions WHERE id = ?", (receipt.mission_id,)
@@ -579,31 +615,14 @@ class SQLiteMissionStore:
                 ).fetchone()
                 if required is None:
                     raise InvalidTransition(f"{required_receipt} receipt is required")
-            connection.execute(
-                """INSERT INTO receipts
-                   (id, mission_id, kind, issuer, external_id, subject_ref, status, issued_at,
-                    payload_json, signature, verified, digest)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)""",
-                (
-                    f"receipt-{uuid4().hex[:12]}",
-                    receipt.mission_id,
-                    receipt.kind,
-                    receipt.issuer,
-                    receipt.external_id,
-                    receipt.subject_ref,
-                    receipt.status,
-                    receipt.issued_at,
-                    json.dumps(receipt.payload, sort_keys=True),
-                    receipt.signature,
-                    digest,
-                ),
-            )
             next_state = target_state or current
-            connection.execute(
+            update = connection.execute(
                 """UPDATE missions SET release_state = ?, version = version + 1, updated_at = ?
                    WHERE id = ? AND version = ?""",
                 (next_state, utc_now(), receipt.mission_id, row["version"]),
             )
+            if update.rowcount != 1:
+                raise VersionConflict("Mission changed while applying partner receipt")
             self._append_event(
                 connection,
                 receipt.mission_id,
@@ -615,7 +634,7 @@ class SQLiteMissionStore:
                     "digest": digest,
                 },
             )
-        return self.snapshot(receipt.mission_id), True
+        return self.snapshot(receipt.mission_id), created
 
     def snapshot(self, mission_id: str) -> MissionSnapshot:
         with self._connect() as connection:
@@ -687,3 +706,239 @@ class SQLiteMissionStore:
             ],
             runs=[MissionRun(**dict(row)) for row in run_rows],
         )
+
+
+class _PostgresConnection:
+    """Small DB-API compatibility layer for the store's portable SQL subset."""
+
+    def __init__(self, conninfo: str, connect_kwargs: dict[str, Any]) -> None:
+        self._raw: psycopg.Connection[dict[str, Any]] = psycopg.connect(
+            conninfo,
+            row_factory=dict_row,
+            **connect_kwargs,
+        )
+
+    def execute(
+        self, statement: str, params: tuple[object, ...] | None = None
+    ) -> psycopg.Cursor[dict[str, Any]]:
+        return self._raw.execute(statement.replace("?", "%s"), params)
+
+    def commit(self) -> None:
+        self._raw.commit()
+
+    def rollback(self) -> None:
+        self._raw.rollback()
+
+    def close(self) -> None:
+        self._raw.close()
+
+    def __enter__(self) -> _PostgresConnection:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: object | None,
+    ) -> None:
+        try:
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
+        finally:
+            self.close()
+
+
+class PostgreSQLMissionStore(SQLiteMissionStore):
+    """PostgreSQL authority used by managed multi-instance deployments."""
+
+    backend = "postgresql"
+
+    def __init__(self, conninfo: str = "", **connect_kwargs: Any) -> None:
+        self.conninfo = conninfo
+        self.connect_kwargs = connect_kwargs
+        self._initialize()
+
+    def _connect(self) -> _PostgresConnection:  # type: ignore[override]
+        return _PostgresConnection(self.conninfo, self.connect_kwargs)
+
+    @contextmanager
+    def _transaction(self) -> Iterator[_PostgresConnection]:  # type: ignore[override]
+        with self._connect() as connection:
+            yield connection
+
+    def _initialize(self) -> None:
+        statements = (
+            """
+            CREATE TABLE IF NOT EXISTS missions (
+                id TEXT PRIMARY KEY,
+                case_ref TEXT NOT NULL UNIQUE,
+                vessel TEXT NOT NULL,
+                container_ref TEXT NOT NULL,
+                release_state TEXT NOT NULL,
+                adjustment_state TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                truth_mode TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS evidence (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                status TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                facts_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(mission_id, kind)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS approvals (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                artifact_ref TEXT NOT NULL,
+                approved_at TEXT NOT NULL,
+                UNIQUE(mission_id, kind)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS receipts (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                issuer TEXT NOT NULL,
+                external_id TEXT NOT NULL,
+                subject_ref TEXT NOT NULL,
+                status TEXT NOT NULL,
+                issued_at TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                signature TEXT NOT NULL,
+                verified INTEGER NOT NULL,
+                digest TEXT NOT NULL,
+                UNIQUE(issuer, external_id)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mission_events (
+                seq BIGSERIAL PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                event_type TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                prev_hash TEXT NOT NULL,
+                event_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS traces (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                agent TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                truth_mode TEXT NOT NULL,
+                status TEXT NOT NULL,
+                detail_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS derived_memory (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                memory_key TEXT NOT NULL,
+                value_json TEXT NOT NULL,
+                reviewed_by TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(mission_id, memory_key)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                content_json TEXT NOT NULL,
+                digest TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(mission_id, kind, revision)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mission_runs (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                status TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                steps INTEGER NOT NULL,
+                started_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mission_leases (
+                mission_id TEXT PRIMARY KEY REFERENCES missions(id),
+                owner TEXT NOT NULL,
+                expires_at DOUBLE PRECISION NOT NULL
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS evidence_mission_idx ON evidence(mission_id)",
+            "CREATE INDEX IF NOT EXISTS approvals_mission_idx ON approvals(mission_id)",
+            "CREATE INDEX IF NOT EXISTS receipts_mission_idx ON receipts(mission_id)",
+            "CREATE INDEX IF NOT EXISTS events_mission_seq_idx ON mission_events(mission_id, seq)",
+            "CREATE INDEX IF NOT EXISTS traces_mission_idx ON traces(mission_id)",
+            "CREATE INDEX IF NOT EXISTS artifacts_mission_idx ON artifacts(mission_id)",
+            "CREATE INDEX IF NOT EXISTS runs_mission_idx ON mission_runs(mission_id)",
+        )
+        with self._connect() as connection:
+            for statement in statements:
+                connection.execute(statement)
+
+
+MissionStore = SQLiteMissionStore | PostgreSQLMissionStore
+
+
+def build_mission_store(database_path: str | None = None) -> MissionStore:
+    """Select local SQLite explicitly or require PostgreSQL in Cloud Run."""
+
+    if database_path is not None:
+        return SQLiteMissionStore(database_path)
+
+    database_url = os.getenv("CARGO_RELEASE_DATABASE_URL")
+    if database_url:
+        return PostgreSQLMissionStore(database_url, connect_timeout=10)
+
+    database_host = os.getenv("CARGO_RELEASE_DB_HOST")
+    if database_host:
+        required = {
+            "dbname": os.getenv("CARGO_RELEASE_DB_NAME"),
+            "user": os.getenv("CARGO_RELEASE_DB_USER"),
+            "password": os.getenv("CARGO_RELEASE_DB_PASSWORD"),
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            raise StoreError(
+                "PostgreSQL configuration is incomplete: " + ", ".join(sorted(missing))
+            )
+        return PostgreSQLMissionStore(
+            host=database_host,
+            dbname=required["dbname"],
+            user=required["user"],
+            password=required["password"],
+            connect_timeout=10,
+            application_name="cargo-release-controller",
+        )
+
+    if os.getenv("K_SERVICE"):
+        raise StoreError("Managed runtime requires CARGO_RELEASE_DB_HOST (Cloud SQL authority)")
+    return SQLiteMissionStore(os.getenv("CARGO_RELEASE_DB", "var/cargo-release.db"))

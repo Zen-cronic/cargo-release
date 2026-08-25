@@ -6,15 +6,15 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
-from fastapi.testclient import TestClient
 
 from cargo_release.api import create_app
 from cargo_release.cloud_context import eventarc_truth_mode
 from cargo_release.models import TruthMode
+from tests.asgi_client import ASGITestClient
 
 
 def test_demo_route_walk_releases_cargo_but_not_adjustment(tmp_path: Path) -> None:
-    client = TestClient(create_app(str(tmp_path / "api.db")))
+    client = ASGITestClient(create_app(str(tmp_path / "api.db")))
     response = client.post("/v1/missions/demo")
     assert response.status_code == 200
     snapshot = response.json()
@@ -55,7 +55,7 @@ def test_demo_route_walk_releases_cargo_but_not_adjustment(tmp_path: Path) -> No
 
 
 def test_api_requires_current_version(tmp_path: Path) -> None:
-    client = TestClient(create_app(str(tmp_path / "conflict.db")))
+    client = ASGITestClient(create_app(str(tmp_path / "conflict.db")))
     snapshot = client.post("/v1/missions/demo").json()
     mission_id = snapshot["mission"]["id"]
     response = client.post(
@@ -66,7 +66,7 @@ def test_api_requires_current_version(tmp_path: Path) -> None:
 
 
 def test_api_one_start_and_one_human_gate_complete_release(tmp_path: Path) -> None:
-    client = TestClient(create_app(str(tmp_path / "runtime.db")))
+    client = ASGITestClient(create_app(str(tmp_path / "runtime.db")))
     snapshot = client.post("/v1/missions/demo").json()
     mission_id = snapshot["mission"]["id"]
 
@@ -92,7 +92,7 @@ def test_api_one_start_and_one_human_gate_complete_release(tmp_path: Path) -> No
 
 
 def test_cloudevent_ingress_is_idempotent_and_stops_at_human_gate(tmp_path: Path) -> None:
-    client = TestClient(create_app(str(tmp_path / "eventarc.db")))
+    client = ASGITestClient(create_app(str(tmp_path / "eventarc.db")))
     headers = {
         "ce-id": "evt-casualty-0819",
         "ce-source": "//pubsub.googleapis.com/projects/demo/topics/casualties",
@@ -138,7 +138,7 @@ def test_cloudevent_ingress_is_idempotent_and_stops_at_human_gate(tmp_path: Path
 
 
 def test_cloudevent_rejects_invalid_pubsub_data(tmp_path: Path) -> None:
-    client = TestClient(create_app(str(tmp_path / "invalid-eventarc.db")))
+    client = ASGITestClient(create_app(str(tmp_path / "invalid-eventarc.db")))
     response = client.post(
         "/v1/events/casualty",
         headers={
@@ -159,14 +159,22 @@ def test_eventarc_native_label_requires_cloud_run_and_trace(
     assert (
         eventarc_truth_mode(
             event_id="evt-1",
-            event_source="//pubsub.googleapis.com/projects/demo/topics/casualties",
-            trace_context="trace/1;o=1",
+            event_source="//pubsub.googleapis.com/projects/demo-project/topics/casualties",
+            trace_context="0123456789abcdef0123456789abcdef/1;o=1",
         )
         is TruthMode.NATIVE
     )
     assert (
         eventarc_truth_mode(
             event_id="evt-1", event_source="//pubsub.googleapis.com", trace_context=None
+        )
+        is TruthMode.FIXTURE
+    )
+    assert (
+        eventarc_truth_mode(
+            event_id="evt-synthetic",
+            event_source="//cargo-release.local/phase3-concurrency-proof",
+            trace_context="0123456789abcdef0123456789abcdef/1;o=1",
         )
         is TruthMode.FIXTURE
     )

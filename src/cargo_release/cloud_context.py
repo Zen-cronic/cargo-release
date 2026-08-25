@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from cargo_release.models import TruthMode
 
@@ -10,8 +11,15 @@ def eventarc_truth_mode(
 ) -> TruthMode:
     """Label an ingress NATIVE only when Cloud Run and CloudEvents evidence agree."""
 
-    on_cloud_run = bool(os.getenv("K_SERVICE") and os.getenv("GOOGLE_CLOUD_PROJECT"))
-    has_cloud_event = bool(event_id and event_source)
-    if on_cloud_run and has_cloud_event and trace_context:
+    project = os.getenv("GOOGLE_CLOUD_PROJECT")
+    on_cloud_run = bool(os.getenv("K_SERVICE") and project)
+    native_source = f"//pubsub.googleapis.com/projects/{project}/topics/"
+    has_native_cloud_event = bool(
+        event_id and event_source and event_source.startswith(native_source)
+    )
+    has_native_trace = bool(
+        trace_context and re.fullmatch(r"[0-9a-f]{32}/[0-9]+;o=[01]", trace_context, re.IGNORECASE)
+    )
+    if on_cloud_run and has_native_cloud_event and has_native_trace:
         return TruthMode.NATIVE
     return TruthMode.FIXTURE

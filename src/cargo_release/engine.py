@@ -14,7 +14,7 @@ from cargo_release.models import (
 )
 from cargo_release.partners import PARTNER_SECRETS
 from cargo_release.security import verify_receipt
-from cargo_release.store import InvalidTransition, SQLiteMissionStore
+from cargo_release.store import InvalidTransition, MissionStore
 
 
 class DomainError(RuntimeError):
@@ -26,7 +26,7 @@ class IdentityError(DomainError):
 
 
 class CargoReleaseEngine:
-    def __init__(self, store: SQLiteMissionStore) -> None:
+    def __init__(self, store: MissionStore) -> None:
         self.store = store
 
     def create_demo_mission(self) -> MissionSnapshot:
