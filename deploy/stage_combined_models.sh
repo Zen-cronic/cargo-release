@@ -6,6 +6,7 @@ GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
 CONTROLLER_SERVICE="${CONTROLLER_SERVICE:-cargo-release-controller}"
 WEB_SERVICE="${WEB_SERVICE:-cargo-release-web}"
 CONTROLLER_SERVICE_ACCOUNT="${CONTROLLER_SERVICE_ACCOUNT:-cargo-controller@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com}"
+CONTROLLER_AUDIENCE="${CARGO_RELEASE_CONTROLLER_AUDIENCE:-https://cargo-release-controller-1015646664425.us-central1.run.app}"
 RUNTIME_BUCKET="${CARGO_RELEASE_STAGING_BUCKET:-gs://ata-2026-cargo-cargo-release-runtime}"
 APP_SOURCE_COMMIT="${CARGO_RELEASE_APP_SOURCE_COMMIT:-059c0446c38526aaf774eb23e99531aebf615d32}"
 DEPLOY_TAG="${CARGO_RELEASE_DEPLOY_TAG:-combined-059c044}"
@@ -16,6 +17,7 @@ IAM_APPROVAL_PHRASE="I_APPROVE_AIPLATFORM_USER_AND_PREFIX_STORAGE"
 STORAGE_CONDITION="deploy/controller-veo-storage-condition.yaml"
 NOTIFICATION_SECRET="cargo-release-notification-webhook"
 EXPECTED_CONTROLLER_SERVICE_ACCOUNT="cargo-controller@ata-2026-cargo.iam.gserviceaccount.com"
+EXPECTED_CONTROLLER_AUDIENCE="https://cargo-release-controller-1015646664425.us-central1.run.app"
 EXPECTED_RUNTIME_BUCKET="gs://ata-2026-cargo-cargo-release-runtime"
 EXPECTED_BACKEND_IMAGE="us-central1-docker.pkg.dev/ata-2026-cargo/cargo-release/backend@sha256:a9135191dea2be124f9ecd0b8c974c5daff2ec66eb6d63c541023e6c2aa836d1"
 EXPECTED_WEB_IMAGE="us-central1-docker.pkg.dev/ata-2026-cargo/cargo-release/web@sha256:2534fde9e5a67b092a8b2f6727aeba424c13334a2aff29141d1e3cc9ae82e22f"
@@ -27,6 +29,7 @@ if [[ "${GOOGLE_CLOUD_PROJECT}" != "ata-2026-cargo" ]] || \
 fi
 
 if [[ "${CONTROLLER_SERVICE_ACCOUNT}" != "${EXPECTED_CONTROLLER_SERVICE_ACCOUNT}" ]] || \
+  [[ "${CONTROLLER_AUDIENCE}" != "${EXPECTED_CONTROLLER_AUDIENCE}" ]] || \
   [[ "${RUNTIME_BUCKET}" != "${EXPECTED_RUNTIME_BUCKET}" ]] || \
   [[ "${BACKEND_IMAGE}" != "${EXPECTED_BACKEND_IMAGE}" ]] || \
   [[ "${WEB_IMAGE}" != "${EXPECTED_WEB_IMAGE}" ]]; then
@@ -37,6 +40,11 @@ fi
 
 if [[ ! -f "${STORAGE_CONDITION}" ]]; then
   printf 'Missing storage condition: %s\n' "${STORAGE_CONDITION}" >&2
+  exit 2
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  printf '%s\n' "jq is required to resolve tagged Cloud Run revision URLs." >&2
   exit 2
 fi
 
@@ -120,22 +128,26 @@ gcloud run deploy "${CONTROLLER_SERVICE}" \
   --remove-secrets="CARGO_RELEASE_NOTIFICATION_WEBHOOK_URL" \
   --quiet
 
+controller_tag_url="$(gcloud run services describe "${CONTROLLER_SERVICE}" \
+  --project="${GOOGLE_CLOUD_PROJECT}" \
+  --region="${GOOGLE_CLOUD_LOCATION}" \
+  --format=json | jq -er --arg tag "${DEPLOY_TAG}" \
+  '.status.traffic[] | select(.tag == $tag) | .url')"
+
 gcloud run deploy "${WEB_SERVICE}" \
   --project="${GOOGLE_CLOUD_PROJECT}" \
   --region="${GOOGLE_CLOUD_LOCATION}" \
   --image="${WEB_IMAGE}" \
   --no-traffic \
   --tag="${DEPLOY_TAG}" \
+  --update-env-vars="CARGO_RELEASE_CONTROLLER_URL=${controller_tag_url},CARGO_RELEASE_CONTROLLER_AUDIENCE=${CONTROLLER_AUDIENCE}" \
   --quiet
 
-controller_tag_url="$(gcloud run services describe "${CONTROLLER_SERVICE}" \
-  --project="${GOOGLE_CLOUD_PROJECT}" \
-  --region="${GOOGLE_CLOUD_LOCATION}" \
-  --format="value(status.traffic[?tag='${DEPLOY_TAG}'].url)")"
 web_tag_url="$(gcloud run services describe "${WEB_SERVICE}" \
   --project="${GOOGLE_CLOUD_PROJECT}" \
   --region="${GOOGLE_CLOUD_LOCATION}" \
-  --format="value(status.traffic[?tag='${DEPLOY_TAG}'].url)")"
+  --format=json | jq -er --arg tag "${DEPLOY_TAG}" \
+  '.status.traffic[] | select(.tag == $tag) | .url')"
 
 if [[ -z "${controller_tag_url}" ]] || [[ -z "${web_tag_url}" ]]; then
   printf '%s\n' "Staged revisions did not return both tagged URLs." >&2
