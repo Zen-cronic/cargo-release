@@ -21,6 +21,9 @@ services:
     source: src/cargo_release/adk_agent.py
     deployer: scripts/deploy_agent_runtime.py
     identity_type: AGENT_IDENTITY
+    model: gemini-3.5-flash
+    model_inference_location: global
+    governance_location: us-central1
     registry: automatic after Agent Runtime deployment
   insurer-fixture:
     runtime: cloud-run

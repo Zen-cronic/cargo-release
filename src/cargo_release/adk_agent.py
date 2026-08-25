@@ -1,12 +1,41 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 import httpx
 from google.adk.agents import Agent
+from google.adk.models import Gemini
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
+
+DEFAULT_MODEL = "gemini-3.5-flash"
+DEFAULT_MODEL_LOCATION = "global"
+
+
+def _require_eligible_model(model: str) -> str:
+    match = re.fullmatch(r"gemini-(\d+)(?:\.(\d+))?-[a-z0-9][a-z0-9.-]*", model)
+    if not match:
+        raise RuntimeError(f"CARGO_RELEASE_MODEL must be a Gemini model ID, got {model!r}")
+    version = (int(match.group(1)), int(match.group(2) or 0))
+    if version < (3, 5):
+        raise RuntimeError(
+            f"CARGO_RELEASE_MODEL={model!r} is ineligible; the event requires Gemini 3.5+"
+        )
+    return model
+
+
+def _coordinator_model() -> Gemini:
+    model = _require_eligible_model(os.getenv("CARGO_RELEASE_MODEL", DEFAULT_MODEL))
+    client_kwargs: dict[str, Any] = {
+        "vertexai": True,
+        "location": os.getenv("CARGO_RELEASE_MODEL_LOCATION", DEFAULT_MODEL_LOCATION),
+    }
+    project = os.getenv("CARGO_RELEASE_MODEL_PROJECT")
+    if project:
+        client_kwargs["project"] = project
+    return Gemini(model=model, client_kwargs=client_kwargs)
 
 
 def _controller_headers(base_url: str) -> dict[str, str]:
@@ -58,7 +87,7 @@ def inspect_mission(mission_id: str) -> dict[str, Any]:
 
 
 root_agent = Agent(
-    model=os.getenv("CARGO_RELEASE_MODEL", "gemini-2.5-flash"),
+    model=_coordinator_model(),
     name="cargo_release_coordinator",
     description="Coordinates a receipt-gated General Average cargo release mission.",
     instruction="""

@@ -25,8 +25,9 @@ The deployable vertical slice keeps the same deterministic controller while addi
 execution evidence:
 
 - Pub/Sub and Eventarc deliver a real CloudEvent envelope to an idempotent casualty endpoint.
-- an ADK coordinator can deploy to Agent Runtime with Agent Identity and bounded inspect/advance
-  tools;
+- an ADK coordinator deploys to Agent Runtime with Agent Identity, bounded inspect/advance tools,
+  and a fail-closed Gemini 3.5+ eligibility guard; its model inference uses Vertex AI's `global`
+  endpoint while the governed runtime remains in `us-central1`;
 - private insurer, adjuster, and carrier Cloud Run services are invoked with Google-signed ID
   tokens and return separately signed receipts;
 - the public Next.js shell relays same-origin requests through its server runtime, which uses the

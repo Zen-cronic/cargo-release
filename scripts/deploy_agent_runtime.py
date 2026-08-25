@@ -9,7 +9,7 @@ from google.auth.credentials import Credentials
 from google.oauth2.credentials import Credentials as UserCredentials
 from vertexai import agent_engines, types
 
-from cargo_release.adk_agent import root_agent
+from cargo_release.adk_agent import DEFAULT_MODEL, DEFAULT_MODEL_LOCATION, root_agent
 
 
 def required(name: str) -> str:
@@ -72,8 +72,12 @@ def main() -> None:
                 "CARGO_RELEASE_CONTROLLER_AUDIENCE", controller_url
             ),
             "CARGO_RELEASE_MODEL": os.getenv(
-                "CARGO_RELEASE_MODEL", "gemini-2.5-flash"
+                "CARGO_RELEASE_MODEL", DEFAULT_MODEL
             ),
+            "CARGO_RELEASE_MODEL_LOCATION": os.getenv(
+                "CARGO_RELEASE_MODEL_LOCATION", DEFAULT_MODEL_LOCATION
+            ),
+            "CARGO_RELEASE_MODEL_PROJECT": project,
         },
         "identity_type": types.IdentityType.AGENT_IDENTITY,
         "python_version": "3.12",
