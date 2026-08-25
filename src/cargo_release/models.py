@@ -219,6 +219,11 @@ class NonAuthoritativeModelAction(BaseModel):
     actor: str = "operator.demo"
 
 
+class VeoReplayAction(BaseModel):
+    confirm_training_only: bool = False
+    actor: str = "operator.demo"
+
+
 class ReceiptEnvelope(BaseModel):
     receipt: PartnerReceipt
 

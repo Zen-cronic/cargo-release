@@ -3,10 +3,11 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 
 from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from cargo_release.case_retrieval import (
     CaseRetrievalPort,
@@ -28,6 +29,7 @@ from cargo_release.models import (
     ReceiptEnvelope,
     ReceiptKind,
     SyntheticNotificationAction,
+    VeoReplayAction,
     VersionedAction,
 )
 from cargo_release.notification import (
@@ -44,6 +46,13 @@ from cargo_release.partners import (
 from cargo_release.runtime import MissionOrchestrator
 from cargo_release.security import ReceiptSecurityError
 from cargo_release.store import MissionNotFound, StoreError, build_mission_store
+from cargo_release.veo_replay import (
+    VeoReplayPort,
+    VeoReplayService,
+    build_veo_replay,
+    fetch_gcs_media,
+    latest_veo_receipt,
+)
 
 
 def create_app(
@@ -52,6 +61,7 @@ def create_app(
     notification_port: OperatorNotificationPort | None = None,
     gemma_critic: GemmaCriticPort | None = None,
     case_retrieval: CaseRetrievalPort | None = None,
+    veo_replay: VeoReplayPort | None = None,
 ) -> FastAPI:
     store = build_mission_store(database_path)
     engine = CargoReleaseEngine(store)
@@ -61,6 +71,7 @@ def create_app(
     )
     critic = GemmaCriticService(store, gemma_critic or build_gemma_critic())
     retrieval = CaseRetrievalService(store, case_retrieval or build_case_retrieval())
+    replay = VeoReplayService(store, veo_replay or build_veo_replay())
 
     def postprocess(snapshot: MissionSnapshot) -> MissionSnapshot:
         reviewed = critic.maybe_review_gate(snapshot.mission.id)
@@ -77,6 +88,7 @@ def create_app(
     app.state.notifications = notifications
     app.state.gemma_critic = critic
     app.state.case_retrieval = retrieval
+    app.state.veo_replay = replay
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3024", "http://localhost:3024"],
@@ -185,6 +197,40 @@ def create_app(
                 "confirm_non_authoritative=true is required; retrieval cannot authorize cargo"
             )
         return retrieval.maybe_retrieve(mission_id, retry=True, actor=action.actor)
+
+    @app.post(
+        "/v1/missions/{mission_id}/models/veo-replay:generate",
+        response_model=MissionSnapshot,
+    )
+    def generate_veo_replay(mission_id: str, action: VeoReplayAction) -> MissionSnapshot:
+        if not action.confirm_training_only:
+            raise DomainError(
+                "confirm_training_only=true is required; replay is not evidence or authority"
+            )
+        return replay.generate(mission_id, actor=action.actor)
+
+    @app.get("/v1/missions/{mission_id}/models/veo-replay/media")
+    def get_veo_replay_media(mission_id: str) -> Response:
+        receipt = latest_veo_receipt(store.snapshot(mission_id))
+        if receipt is None or receipt.status != "COMPLETED":
+            raise DomainError("Completed replay media is unavailable")
+        if receipt.truth_mode != "NATIVE":
+            raise DomainError("Fixture replay has no managed media object")
+        asset_uri = receipt.result.get("asset_uri")
+        expected_digest = receipt.result.get("asset_sha256")
+        if not isinstance(asset_uri, str) or not isinstance(expected_digest, str):
+            raise DomainError("Replay receipt has no valid media provenance")
+        media = fetch_gcs_media(
+            asset_uri,
+            os.getenv("CARGO_RELEASE_VEO_OUTPUT_URI", ""),
+        )
+        if hashlib.sha256(media).hexdigest() != expected_digest:
+            raise DomainError("Replay media digest does not match its receipt")
+        return Response(
+            content=media,
+            media_type="video/mp4",
+            headers={"cache-control": "private, no-store"},
+        )
 
     @app.post("/v1/missions/{mission_id}/approvals/owner-bond", response_model=MissionSnapshot)
     def approve(mission_id: str, action: VersionedAction) -> MissionSnapshot:

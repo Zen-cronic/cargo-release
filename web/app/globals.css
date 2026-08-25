@@ -251,6 +251,27 @@ button:focus-visible { outline: 3px solid oklch(0.69 0.17 48 / .26); outline-off
 .retrieval-cases small b { color: var(--ink); }
 .retrieval-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .retrieval-meta span { padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font: 500 8px var(--mono); }
+.replay-ready { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 18px; border: 1px solid oklch(0.54 0.10 210); border-radius: 9px; background: linear-gradient(110deg, oklch(0.19 0.035 225), var(--panel)); }
+.replay-ready small, .replay-ready strong { display: block; }
+.replay-ready small { color: var(--blue); font: 600 8px var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+.replay-ready strong { margin: 5px 0; font-size: 12px; }
+.replay-ready p { max-width: 590px; margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.replay-ready .primary-button { min-width: 190px; }
+.veo-receipt { border-top-color: oklch(0.73 0.15 205); }
+.veo-icon { color: oklch(0.84 0.10 210); background: oklch(0.27 0.07 220); }
+.replay-label { margin: 16px 0 10px; color: oklch(0.83 0.11 210); font: 650 9px var(--mono); letter-spacing: .08em; }
+.replay-media { overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 7px; background: oklch(0.12 0.025 235); }
+.replay-media video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.replay-stage { position: relative; overflow: hidden; width: 100%; height: 100%; background: radial-gradient(circle at 62% 42%, oklch(0.47 0.12 190 / .26), transparent 31%), linear-gradient(155deg, oklch(0.18 0.05 240), oklch(0.13 0.03 215)); }
+.replay-stage::after { content: "FICTIONAL TRAINING FRAME"; position: absolute; right: 18px; bottom: 14px; color: oklch(0.76 0.09 205); font: 600 8px var(--mono); letter-spacing: .12em; }
+.replay-container { position: absolute; left: 28%; top: 28%; width: 44%; height: 42%; transform: skewY(-3deg); border: 2px solid oklch(0.74 0.12 190); background: linear-gradient(120deg, oklch(0.38 0.10 190), oklch(0.23 0.07 220)); box-shadow: 0 22px 45px #0008; }
+.replay-container span { position: relative; display: inline-block; width: 25%; height: 100%; border-right: 1px solid oklch(0.75 0.08 195 / .5); }
+.replay-pulse { position: absolute; z-index: 2; width: 12px; height: 12px; border: 2px solid oklch(0.88 0.15 165); border-radius: 50%; box-shadow: 0 0 0 6px oklch(0.72 0.16 165 / .12), 0 0 28px oklch(0.72 0.16 165); animation: replay-pulse 2.4s ease-in-out infinite; }
+.replay-pulse.one { left: 34%; top: 39%; }
+.replay-pulse.two { left: 49%; top: 49%; animation-delay: .4s; }
+.replay-pulse.three { left: 63%; top: 37%; animation-delay: .8s; }
+.asset-ref { display: block; margin-top: 12px; padding: 8px; overflow-wrap: anywhere; color: var(--blue); border: 1px solid var(--line); border-radius: 4px; font: 500 8px var(--mono); }
+@keyframes replay-pulse { 0%, 100% { opacity: .45; transform: scale(.8); } 45% { opacity: 1; transform: scale(1.2); } }
 
 .activity-panel { max-width: 850px; }
 .notification-proof { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; margin: 0 0 18px; padding: 14px; border: 1px solid color-mix(in oklch, var(--verified) 45%, var(--line)); border-radius: 8px; background: var(--verified-soft); }

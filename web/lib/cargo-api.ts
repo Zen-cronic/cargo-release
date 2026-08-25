@@ -173,3 +173,17 @@ export function postMissionAction(
         : JSON.stringify({ expected_version: expectedVersion, actor }),
   });
 }
+
+export function generateVeoReplay(missionId: string): Promise<MissionSnapshot> {
+  return request(`/v1/missions/${missionId}/models/veo-replay:generate`, {
+    method: "POST",
+    body: JSON.stringify({
+      confirm_training_only: true,
+      actor: "operator.demo",
+    }),
+  });
+}
+
+export function veoReplayMediaUrl(missionId: string): string {
+  return `${API_BASE}/v1/missions/${encodeURIComponent(missionId)}/models/veo-replay/media`;
+}

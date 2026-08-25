@@ -60,6 +60,28 @@ test("advisory models are visible but cannot authorize cargo", async ({ page }) 
   await expect(page.getByTestId("primary-action")).toContainText("Approve bond & resume");
 });
 
+test("Veo replay is generated only after release and stays training-only", async ({ page }) => {
+  await page.goto("/");
+  const action = page.getByTestId("primary-action");
+  await action.click();
+  await action.click();
+  await expect(page.getByRole("heading", { name: "Cargo released" })).toBeVisible();
+
+  await page.getByRole("button", { name: "AI checks 2", exact: true }).click();
+  await page.getByTestId("generate-replay").click();
+
+  await expect(page.getByText("veo-3.1-fast-generate-001", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("SYNTHETIC REPLAY — NOT EVIDENCE — GENERATED AFTER RELEASE", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("training only", { exact: false })).toBeVisible();
+  await expect(page.getByText("PHYSICAL RELEASE: RELEASED", { exact: false })).toBeVisible();
+  await expect(page.getByText(/release_authority=false/)).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "AI checks 3", exact: true })).toBeVisible();
+});
+
 test("an existing mission can be reopened from the recording URL", async ({ page, request }) => {
   const response = await request.post("http://127.0.0.1:8095/v1/missions/demo");
   expect(response.ok()).toBeTruthy();

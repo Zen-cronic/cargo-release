@@ -2,15 +2,16 @@
 
 import {
   AlertOctagon, ArrowRight, BadgeCheck, Boxes, Check, ChevronRight, CircleDot,
-  BrainCircuit, Clock3, FileCheck2, FileWarning, Fingerprint, KeyRound, Layers3, LoaderCircle,
+  BrainCircuit, Clock3, FileCheck2, FileWarning, Film, Fingerprint, KeyRound, Layers3, LoaderCircle,
   LockKeyhole, Network, PackageCheck, RefreshCcw, Route, ScanLine, ShieldCheck,
   Send, Ship, Unplug, UsersRound, X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  createDemoMission, type Evidence, getMission, type MissionArtifact, type MissionSnapshot,
-  postMissionAction, type Receipt, type ReceiptKind, type TruthMode,
+  createDemoMission, type Evidence, generateVeoReplay, getMission, type MissionArtifact,
+  type MissionSnapshot, postMissionAction, type Receipt, type ReceiptKind, type TruthMode,
+  veoReplayMediaUrl,
 } from "@/lib/cargo-api";
 
 type Drawer = "architecture" | "fleet" | null;
@@ -42,6 +43,7 @@ const fleet = [
   ["Release Verifier", "carrier-verifier@1.0.0", "Requires order plus carrier read-back."],
   ["Release Notifier", "release-notifier@1.0.0", "Sends marked synthetic operator notices after release."],
   ["Gemma Critic", "gemma-release-critic@1.0.0", "Reviews proposals; owns no release authority."],
+  ["Replay Producer", "veo-post-release-replay@1.0.0", "Generates training media only after release."],
   ["Adjustment Monitor", "adjustment-monitor@1.0.0", "Keeps the long-tail mission open."],
 ];
 
@@ -121,6 +123,13 @@ export function MissionRoom() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Action failed closed"); }
     finally { setBusy(false); }
   };
+  const generateReplay = async () => {
+    if (!snapshot || snapshot.mission.release_state !== "RELEASED" || busy) return;
+    setBusy(true); setError(null); setTab("models");
+    try { setSnapshot(await generateVeoReplay(snapshot.mission.id)); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Replay generation failed closed"); }
+    finally { setBusy(false); }
+  };
 
   if (!snapshot) return (
     <main className="loading-shell">
@@ -161,7 +170,7 @@ export function MissionRoom() {
           {tab === "evidence" && <EvidencePanel snapshot={snapshot} selected={selectedEvidence} onSelect={setSelectedEvidenceId} />}
           {tab === "documents" && <DocumentsPanel snapshot={snapshot} selected={selectedArtifact} onSelect={setSelectedArtifactId} />}
           {tab === "receipts" && <ReceiptsPanel snapshot={snapshot} onInspect={setReceipt} />}
-          {tab === "models" && <ModelReviewPanel snapshot={snapshot} />}
+          {tab === "models" && <ModelReviewPanel snapshot={snapshot} busy={busy} onGenerateReplay={generateReplay} />}
           {tab === "activity" && <ActivityPanel snapshot={snapshot} />}
         </section>
         <DecisionRail snapshot={snapshot} nextAction={nextAction} busy={busy} onAdvance={advance} onNavigate={setTab} />
@@ -272,14 +281,15 @@ function retrievedCases(result: Record<string, unknown>): RetrievedCaseView[] {
   });
 }
 
-function ModelReviewPanel({ snapshot }: { snapshot: MissionSnapshot }) {
+function ModelReviewPanel({ snapshot, busy, onGenerateReplay }: { snapshot: MissionSnapshot; busy: boolean; onGenerateReplay: () => Promise<void> }) {
   const gemma = snapshot.model_receipts?.filter((item) => item.kind === "GEMMA_RELEASE_CRITIC").at(-1);
   const retrieval = snapshot.model_receipts?.filter((item) => item.kind === "GEMINI_EMBEDDING_RETRIEVAL").at(-1);
-  if (!gemma && !retrieval) return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="Optional model checks run only on sanitized packets. Disabled or unavailable checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed advisory receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only checks.</p></div></div>;
+  const veo = snapshot.model_receipts?.filter((item) => item.kind === "VEO_POST_RELEASE_REPLAY").at(-1);
+  if (!gemma && !retrieval && !veo && snapshot.mission.release_state !== "RELEASED") return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="Optional model checks run only on sanitized packets. Disabled or unavailable checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed advisory receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only checks.</p></div></div>;
   const findings = gemma ? criticFindings(gemma.result) : [];
   const summary = gemma ? String(gemma.result.summary ?? (gemma.status === "DEGRADED" ? "The critic is unavailable; the deterministic workflow is unaffected." : "Review completed.")) : "";
   const examples = retrieval ? retrievedCases(retrieval.result) : [];
-  return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized packet. Embedding 2 ranks reviewed synthetic examples. Humans and verified partner receipts remain the only release keys." />
+  return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized packet. Embedding 2 ranks reviewed examples. Veo can visualize the completed workflow only after release. None owns a release key." />
     {gemma && <article className={`model-receipt status-${gemma.status.toLowerCase()}`}>
       <div className="model-receipt-head"><span className="model-icon"><BrainCircuit size={20} /></span><div><small>Proposal checklist receipt</small><strong>{gemma.model_id}</strong><code>{gemma.location} · {gemma.request_ref}</code></div><TruthBadge mode={gemma.truth_mode} /></div>
       <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · no tools · no state transition · no partner contact</span></div>
@@ -294,6 +304,18 @@ function ModelReviewPanel({ snapshot }: { snapshot: MissionSnapshot }) {
       {retrieval.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Retrieval unavailable</strong><p>{String(retrieval.result.error_type ?? "Managed embedding error")} · release_affected=false · explicit retry available through the API.</p></div></div> : <div className="retrieval-cases">{examples.map((item) => <article key={item.case_id}><span className="retrieval-rank">#{item.rank}</span><div><code>{item.case_id}</code><strong>{item.title}</strong><p>{item.reviewed_outcome}</p><small><b>Different here:</b> {item.key_difference}</small></div></article>)}</div>}
       <div className="retrieval-meta"><span>{String(retrieval.result.dimensions ?? "—")} dimensions</span><span>{String(retrieval.result.corpus_size ?? "—")} reviewed cases</span><span>scores withheld</span></div>
       <div className="model-digests"><span>Input <code>sha256:{retrieval.input_digest}</code></span><span>Output <code>sha256:{retrieval.output_digest}</code></span></div>
+    </article>}
+    {!veo && snapshot.mission.release_state === "RELEASED" && <article className="replay-ready">
+      <span className="model-icon veo-icon"><Film size={20} /></span><div><small>Optional post-release artifact</small><strong>Turn the completed receipt chain into a 4-second synthetic training replay</strong><p>The prompt contains no documents, identifiers, people, brands, or operational instructions. Generation cannot change the already committed release.</p></div><button data-testid="generate-replay" className="primary-button" disabled={busy} onClick={() => void onGenerateReplay()}>{busy ? <LoaderCircle className="spin" size={16} /> : <Film size={16} />}{busy ? "Generating…" : "Generate training replay"}</button>
+    </article>}
+    {veo && <article className={`model-receipt veo-receipt status-${veo.status.toLowerCase()}`}>
+      <div className="model-receipt-head"><span className="model-icon veo-icon"><Film size={20} /></span><div><small>Post-release media receipt</small><strong>{veo.model_id}</strong><code>{veo.location} · {veo.request_ref}</code></div><TruthBadge mode={veo.truth_mode} /></div>
+      <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · generated after release · training only · not evidence</span></div>
+      <p className="replay-label">SYNTHETIC REPLAY — NOT EVIDENCE — GENERATED AFTER RELEASE</p>
+      {veo.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Replay unavailable</strong><p>{String(veo.result.error_type ?? "Managed media error")} · release_affected=false · physical release stays committed.</p></div></div> : <div className="replay-media">{veo.truth_mode === "NATIVE" ? <video controls playsInline preload="metadata" aria-label="Synthetic post-release training replay"><source src={veoReplayMediaUrl(snapshot.mission.id)} type="video/mp4" /></video> : <div className="replay-stage" role="img" aria-label="Synthetic post-release replay fixture"><span className="replay-pulse one" /><span className="replay-pulse two" /><span className="replay-pulse three" /><div className="replay-container"><span /><span /><span /><span /></div></div>}</div>}
+      <div className="retrieval-meta"><span>{String(veo.result.duration_seconds ?? "—")} seconds</span><span>{String(veo.result.resolution ?? "—")}</span><span>{String(veo.result.safety_filtered_count ?? "—")} safety filtered</span><span>audio off</span></div>
+      <code className="asset-ref">{String(veo.result.asset_uri ?? "No asset created")}</code>
+      <div className="model-digests"><span>Asset <code>sha256:{String(veo.result.asset_sha256 ?? "unavailable")}</code></span><span>Receipt <code>sha256:{veo.output_digest}</code></span></div>
     </article>}
   </div>;
 }
@@ -382,6 +404,7 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Operator notification", "Allowlisted Slack webhook; marked synthetic and post-release only", snapshot.notifications?.at(-1)?.truth_mode ?? "FIXTURE"],
       ["Gemma 4 critic", "Sanitized proposal review; durable receipt, no tools or authority", snapshot.model_receipts?.find((item) => item.kind === "GEMMA_RELEASE_CRITIC")?.truth_mode ?? "ADAPTER"],
       ["Embedding 2 retrieval", "Reviewed synthetic top-k context; rank only, no threshold or precedent", snapshot.model_receipts?.find((item) => item.kind === "GEMINI_EMBEDDING_RETRIEVAL")?.truth_mode ?? "ADAPTER"],
+      ["Veo 3.1 Fast replay", "Post-release training media; private asset, never evidence", snapshot.model_receipts?.find((item) => item.kind === "VEO_POST_RELEASE_REPLAY")?.truth_mode ?? "ADAPTER"],
     ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
   </aside></div>;
 }

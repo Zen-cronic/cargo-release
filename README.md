@@ -38,7 +38,9 @@ execution evidence:
 - managed Gemma 4 (`google/gemma-4-26b-a4b-it-maas`) reviews only a sanitized owner-bond packet
   at the human gate, exposes no tools, and records `release_authority=false`;
 - Gemini Embedding 2 ranks a filtered corpus of reviewed synthetic cases without exposing scores,
-  thresholds, precedent claims, or state authority; and
+  thresholds, precedent claims, or state authority;
+- Veo 3.1 Fast generates an explicitly confirmed, post-release training replay into private Cloud
+  Storage; the replay is labeled synthetic and not evidence, and it cannot change mission state; and
 - Agent Registry, Agent Gateway, Model Armor, and Agent Observability provide discovery,
   policy-enforced routing, inline screening, and end-to-end telemetry.
 
@@ -72,6 +74,27 @@ sanitized query and eight reviewed synthetic examples, retains the vector-set di
 only ordinal top-k results plus factual differences. Similarity scores never appear as confidence,
 probability, precedent, or a release branch.
 
+Enable the deterministic post-release replay fixture with:
+
+```bash
+export CARGO_RELEASE_VEO_REPLAY_ENABLED=1
+export CARGO_RELEASE_VEO_REPLAY_MODE=FIXTURE
+```
+
+The managed replay path uses `veo-3.1-fast-generate-001` in `us-central1` and additionally sets:
+
+```bash
+export CARGO_RELEASE_MODEL_PROJECT=ata-2026-cargo
+export CARGO_RELEASE_VEO_OUTPUT_URI=gs://ata-2026-cargo-cargo-release-runtime/post-release-media/
+export CARGO_RELEASE_VEO_POLL_SECONDS=10
+export CARGO_RELEASE_VEO_MAX_POLLS=60
+```
+
+Generation is available only after committed `RELEASED` state and verified carrier read-back, and
+requires `confirm_training_only=true`. The controller streams only digest-verified media from the
+configured private prefix. The generated asset is training material—not evidence, an operational
+instruction, or release authority. Do not enable fixture mode in a managed deployment.
+
 ## Local frontend
 
 ```bash
@@ -96,14 +119,17 @@ npm run build
 npm run test:e2e
 ```
 
-Current model checkpoint: 37 default backend/API/partner/model tests pass, plus five isolated
-PostgreSQL acceptance tests (`42 passed` total). Four Playwright journeys cover the
+Current model checkpoint: 42 default backend/API/partner/model tests pass, plus five isolated
+PostgreSQL acceptance tests (`47 passed` total). Five Playwright journeys cover the
 one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine,
-architecture truth labels, and the visible zero-authority Gemma receipt. The backend suite also
+architecture truth labels, the visible zero-authority Gemma receipt, and the explicitly confirmed
+post-release Veo training replay. The backend suite also
 covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed
 memory, private-partner selection, native provenance propagation, sanitized model input,
 rank-only reviewed-case retrieval, degraded-mode continuity, receipt idempotency, and PostgreSQL
-restart persistence.
+restart persistence. The live Veo product-path probe additionally verifies the exact model,
+operation name, private object URI and SHA-256, four-second 1280x720 H.264 media, and unchanged
+mission version.
 
 ## Truth labels
 
