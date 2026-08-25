@@ -4,14 +4,16 @@ import os
 import re
 from typing import Any
 
+import google.auth
 import httpx
 from google.adk.agents import Agent
 from google.adk.models import Gemini
+from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from google.oauth2 import id_token
 
 DEFAULT_MODEL = "gemini-3.5-flash"
 DEFAULT_MODEL_LOCATION = "global"
+GOOGLE_CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
 
 
 def _require_eligible_model(model: str) -> str:
@@ -41,13 +43,34 @@ def _coordinator_model() -> Gemini:
 def _controller_headers(base_url: str) -> dict[str, str]:
     if not base_url.startswith("https://"):
         return {}
+    caller_service_account = os.getenv("CARGO_RELEASE_CALLER_SERVICE_ACCOUNT")
+    if not caller_service_account:
+        raise RuntimeError(
+            "CARGO_RELEASE_CALLER_SERVICE_ACCOUNT is required for a private HTTPS controller"
+        )
     audience = os.getenv(
         "CARGO_RELEASE_CONTROLLER_AUDIENCE", f"{base_url.rstrip('/')}/"
     )
-    token: str = id_token.fetch_id_token(  # type: ignore[no-untyped-call]
-        Request(), audience
+    source_credentials, _project = google.auth.default(
+        scopes=[GOOGLE_CLOUD_PLATFORM_SCOPE]
     )
-    return {"X-Serverless-Authorization": f"Bearer {token}"}
+    target_credentials = impersonated_credentials.Credentials(  # type: ignore[no-untyped-call]
+        source_credentials=source_credentials,
+        target_principal=caller_service_account,
+        target_scopes=[GOOGLE_CLOUD_PLATFORM_SCOPE],
+        lifetime=300,
+    )
+    controller_credentials = impersonated_credentials.IDTokenCredentials(  # type: ignore[no-untyped-call]
+        target_credentials=target_credentials,
+        target_audience=audience,
+        include_email=True,
+    )
+    controller_credentials.refresh(Request())
+    if not controller_credentials.token:
+        raise RuntimeError("IAM Credentials returned an empty controller identity token")
+    return {
+        "X-Serverless-Authorization": f"Bearer {controller_credentials.token}"
+    }
 
 
 def _controller_request(path: str, payload: dict[str, object] | None = None) -> dict[str, Any]:

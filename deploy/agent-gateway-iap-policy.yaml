@@ -1,0 +1,20 @@
+name: cargo-release-iap-request-authz
+action: CUSTOM
+httpRules:
+  - from:
+      sources:
+        - principals:
+            - '*'
+    to:
+      operations:
+        - hosts:
+            - '*'
+    when: CEL_EXPRESSION="true"
+customProvider:
+  authzExtension:
+    resources:
+      - projects/ata-2026-cargo/locations/us-central1/authzExtensions/cargo-release-iap-request-authz
+target:
+  resources:
+    - projects/ata-2026-cargo/locations/us-central1/agentGateways/cargo-release-partner-egress
+profile: REQUEST_AUTHZ

@@ -41,6 +41,12 @@ def main() -> None:
     wheel = Path(required("CARGO_RELEASE_WHEEL"))
     if not wheel.is_file():
         raise RuntimeError(f"CARGO_RELEASE_WHEEL does not exist: {wheel}")
+    try:
+        wheel_package = wheel.resolve().relative_to(Path.cwd().resolve())
+    except ValueError as exc:
+        raise RuntimeError(
+            "CARGO_RELEASE_WHEEL must be inside the deployment working directory"
+        ) from exc
     credentials = deployment_credentials()
     vertexai.init(
         project=project,
@@ -62,14 +68,17 @@ def main() -> None:
             "httpx>=0.28.0,<1.0.0",
             "cloudpickle>=3.0.0,<4.0.0",
             "pydantic>=2.11.0,<3.0.0",
-            str(wheel),
+            str(wheel_package),
         ],
-        "extra_packages": [str(wheel)],
+        "extra_packages": [str(wheel_package)],
         "staging_bucket": bucket,
         "env_vars": {
             "CARGO_RELEASE_CONTROLLER_URL": controller_url,
             "CARGO_RELEASE_CONTROLLER_AUDIENCE": os.getenv(
                 "CARGO_RELEASE_CONTROLLER_AUDIENCE", controller_url
+            ),
+            "CARGO_RELEASE_CALLER_SERVICE_ACCOUNT": required(
+                "CARGO_RELEASE_CALLER_SERVICE_ACCOUNT"
             ),
             "CARGO_RELEASE_MODEL": os.getenv(
                 "CARGO_RELEASE_MODEL", DEFAULT_MODEL
@@ -82,6 +91,11 @@ def main() -> None:
         "identity_type": types.IdentityType.AGENT_IDENTITY,
         "python_version": "3.12",
     }
+    gateway = os.getenv("CARGO_RELEASE_AGENT_GATEWAY")
+    if gateway:
+        config["agent_gateway_config"] = {
+            "agent_to_anywhere_config": {"agent_gateway": gateway}
+        }
     runtime = os.getenv("CARGO_RELEASE_AGENT_RUNTIME")
     if runtime:
         remote_agent = client.agent_engines.update(
