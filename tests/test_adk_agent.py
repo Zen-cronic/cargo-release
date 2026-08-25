@@ -352,10 +352,10 @@ def test_bounded_recovery_performs_one_controller_lease_probe(
 
 def test_tool_error_recovery_is_bounded_and_non_authoritative() -> None:
     report = adk_agent._recover_tool_error(
-        SimpleNamespace(name="start_bounded_mission"),  # type: ignore[arg-type]
-        {"mission_id": "mission-abe2d197faad"},
-        SimpleNamespace(),  # type: ignore[arg-type]
-        TimeoutError("upstream timeout with private detail"),
+        tool=SimpleNamespace(name="start_bounded_mission"),  # type: ignore[arg-type]
+        args={"mission_id": "mission-abe2d197faad"},
+        tool_context=SimpleNamespace(),  # type: ignore[arg-type]
+        error=TimeoutError("upstream timeout with private detail"),
     )
 
     assert report == {

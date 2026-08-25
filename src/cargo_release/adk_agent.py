@@ -7,9 +7,9 @@ from typing import Any, Literal
 import google.auth
 import httpx
 from google.adk.agents import Agent
-from google.adk.agents.context import Context
 from google.adk.models import Gemini
 from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.tool_context import ToolContext
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
 from pydantic import BaseModel, Field, field_validator
@@ -415,11 +415,12 @@ def assess_runtime_recovery(mission_id: str) -> dict[str, Any]:
 def _recover_tool_error(
     tool: BaseTool,
     args: dict[str, Any],
-    _context: Context,
+    tool_context: ToolContext,
     error: Exception,
 ) -> dict[str, Any]:
     """Convert one failed tool call into a bounded, non-authoritative report."""
 
+    del tool_context
     return {
         "status": "DEGRADED",
         "tool": tool.name,
