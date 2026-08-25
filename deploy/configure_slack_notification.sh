@@ -21,6 +21,11 @@ if [[ ! -t 0 ]]; then
   exit 2
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  printf '%s\n' "jq is required to verify the promoted Cloud Run revision." >&2
+  exit 2
+fi
+
 printf '%s' "Paste the operator-owned Slack incoming webhook (input hidden): " >&2
 IFS= read -r -s SLACK_WEBHOOK_URL
 printf '\n' >&2
@@ -59,8 +64,33 @@ gcloud run services update "${CONTROLLER_SERVICE}" \
   --update-secrets="CARGO_RELEASE_NOTIFICATION_WEBHOOK_URL=${NOTIFICATION_SECRET}:latest" \
   --update-env-vars="CARGO_RELEASE_SYNTHETIC_NOTIFICATION_ENABLED=1,CARGO_RELEASE_NOTIFICATION_ENDPOINT_LABEL=${CARGO_RELEASE_NOTIFICATION_ENDPOINT_LABEL},CARGO_RELEASE_PUBLIC_BASE_URL=${CARGO_RELEASE_PUBLIC_BASE_URL}"
 
+# A previous --no-traffic deployment makes that behavior sticky for later service updates.
+# Resolve and promote the exact revision created above instead of trusting gcloud's success banner.
+controller_service_json="$(gcloud run services describe "${CONTROLLER_SERVICE}" \
+  --project="${GOOGLE_CLOUD_PROJECT}" \
+  --region="${GOOGLE_CLOUD_LOCATION}" \
+  --format=json)"
+configured_revision="$(jq -er '.status.latestCreatedRevisionName' <<<"${controller_service_json}")"
+
+gcloud run services update-traffic "${CONTROLLER_SERVICE}" \
+  --project="${GOOGLE_CLOUD_PROJECT}" \
+  --region="${GOOGLE_CLOUD_LOCATION}" \
+  --to-revisions="${configured_revision}=100" \
+  --quiet
+
+serving_revision="$(gcloud run services describe "${CONTROLLER_SERVICE}" \
+  --project="${GOOGLE_CLOUD_PROJECT}" \
+  --region="${GOOGLE_CLOUD_LOCATION}" \
+  --format=json | jq -er '.status.traffic[] | select(.percent == 100) | .revisionName')"
+if [[ "${serving_revision}" != "${configured_revision}" ]]; then
+  printf 'Configured revision %s is not serving 100%% traffic; found %s.\n' \
+    "${configured_revision}" "${serving_revision}" >&2
+  exit 1
+fi
+
 printf '%s\n' \
   "Marked synthetic Slack delivery enabled." \
+  "CONTROLLER_REVISION=${configured_revision}" \
   "NOTIFICATION_SECRET=${NOTIFICATION_SECRET}" \
   "CARGO_RELEASE_NOTIFICATION_ENDPOINT_LABEL=${CARGO_RELEASE_NOTIFICATION_ENDPOINT_LABEL}" \
   "CARGO_RELEASE_PUBLIC_BASE_URL=${CARGO_RELEASE_PUBLIC_BASE_URL}" \
