@@ -9,6 +9,7 @@
     "check": "tsc --noEmit",
     "smoke:route": "node scripts/smoke.mjs",
     "capture:visual": "node scripts/capture.mjs",
+    "rehearse:production": "node scripts/rehearse-production.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
