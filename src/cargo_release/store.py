@@ -25,6 +25,7 @@ from cargo_release.models import (
     MissionEvent,
     MissionRun,
     MissionSnapshot,
+    NotificationDelivery,
     PartnerReceipt,
     ReceiptKind,
     ReleaseState,
@@ -181,13 +182,36 @@ class SQLiteMissionStore:
                     started_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS notification_deliveries (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES missions(id),
+                    kind TEXT NOT NULL,
+                    endpoint_label TEXT NOT NULL,
+                    provider_ref TEXT NOT NULL,
+                    payload_digest TEXT NOT NULL,
+                    truth_mode TEXT NOT NULL DEFAULT 'ADAPTER',
+                    status TEXT NOT NULL,
+                    delivered_at TEXT NOT NULL,
+                    UNIQUE(mission_id, kind)
+                );
                 CREATE TABLE IF NOT EXISTS mission_leases (
                     mission_id TEXT PRIMARY KEY REFERENCES missions(id),
                     owner TEXT NOT NULL,
                     expires_at REAL NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS notifications_mission_idx
+                    ON notification_deliveries(mission_id);
                 """
             )
+            notification_columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(notification_deliveries)")
+            }
+            if "truth_mode" not in notification_columns:
+                connection.execute(
+                    """ALTER TABLE notification_deliveries
+                       ADD COLUMN truth_mode TEXT NOT NULL DEFAULT 'ADAPTER'"""
+                )
 
     def acquire_lease(self, mission_id: str, owner: str, ttl_seconds: int = 30) -> bool:
         now = time.time()
@@ -636,6 +660,58 @@ class SQLiteMissionStore:
             )
         return self.snapshot(receipt.mission_id), created
 
+    def record_notification_delivery(
+        self,
+        mission_id: str,
+        *,
+        kind: str,
+        endpoint_label: str,
+        provider_ref: str,
+        payload_digest: str,
+        truth_mode: TruthMode,
+        status: str,
+        delivered_at: str,
+        actor: str,
+    ) -> tuple[MissionSnapshot, bool]:
+        delivery_id = f"notification-{uuid4().hex[:12]}"
+        with self._transaction() as connection:
+            result = connection.execute(
+                """INSERT INTO notification_deliveries
+                   (id, mission_id, kind, endpoint_label, provider_ref, payload_digest, truth_mode,
+                    status, delivered_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(mission_id, kind) DO NOTHING""",
+                (
+                    delivery_id,
+                    mission_id,
+                    kind,
+                    endpoint_label,
+                    provider_ref,
+                    payload_digest,
+                    truth_mode,
+                    status,
+                    delivered_at,
+                ),
+            )
+            created = result.rowcount == 1
+            if created:
+                self._append_event(
+                    connection,
+                    mission_id,
+                    "SYNTHETIC_NOTIFICATION_DELIVERED",
+                    actor,
+                    {
+                        "kind": kind,
+                        "endpoint_label": endpoint_label,
+                        "provider_ref": provider_ref,
+                        "payload_digest": payload_digest,
+                        "truth_mode": truth_mode,
+                        "status": status,
+                        "synthetic": True,
+                    },
+                )
+        return self.snapshot(mission_id), created
+
     def snapshot(self, mission_id: str) -> MissionSnapshot:
         with self._connect() as connection:
             mission_row = connection.execute(
@@ -667,6 +743,11 @@ class SQLiteMissionStore:
             run_rows = connection.execute(
                 """SELECT * FROM mission_runs WHERE mission_id = ?
                    ORDER BY started_at""",
+                (mission_id,),
+            ).fetchall()
+            notification_rows = connection.execute(
+                """SELECT * FROM notification_deliveries WHERE mission_id = ?
+                   ORDER BY delivered_at, id""",
                 (mission_id,),
             ).fetchall()
 
@@ -705,6 +786,7 @@ class SQLiteMissionStore:
                 for row in artifact_rows
             ],
             runs=[MissionRun(**dict(row)) for row in run_rows],
+            notifications=[NotificationDelivery(**dict(row)) for row in notification_rows],
         )
 
 
@@ -886,6 +968,22 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
             )
             """,
             """
+            CREATE TABLE IF NOT EXISTS notification_deliveries (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                endpoint_label TEXT NOT NULL,
+                provider_ref TEXT NOT NULL,
+                payload_digest TEXT NOT NULL,
+                truth_mode TEXT NOT NULL DEFAULT 'ADAPTER',
+                status TEXT NOT NULL,
+                delivered_at TEXT NOT NULL,
+                UNIQUE(mission_id, kind)
+            )
+            """,
+            """ALTER TABLE notification_deliveries
+               ADD COLUMN IF NOT EXISTS truth_mode TEXT NOT NULL DEFAULT 'ADAPTER'""",
+            """
             CREATE TABLE IF NOT EXISTS mission_leases (
                 mission_id TEXT PRIMARY KEY REFERENCES missions(id),
                 owner TEXT NOT NULL,
@@ -899,6 +997,8 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
             "CREATE INDEX IF NOT EXISTS traces_mission_idx ON traces(mission_id)",
             "CREATE INDEX IF NOT EXISTS artifacts_mission_idx ON artifacts(mission_id)",
             "CREATE INDEX IF NOT EXISTS runs_mission_idx ON mission_runs(mission_id)",
+            """CREATE INDEX IF NOT EXISTS notifications_mission_idx
+               ON notification_deliveries(mission_id)""",
         )
         with self._connect() as connection:
             for statement in statements:

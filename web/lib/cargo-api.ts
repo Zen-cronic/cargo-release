@@ -96,6 +96,17 @@ export interface MissionRun {
   updated_at: string;
 }
 
+export interface NotificationDelivery {
+  id: string;
+  kind: string;
+  endpoint_label: string;
+  provider_ref: string;
+  payload_digest: string;
+  truth_mode?: TruthMode;
+  status: string;
+  delivered_at: string;
+}
+
 export interface MissionSnapshot {
   mission: Mission;
   evidence: Evidence[];
@@ -105,6 +116,7 @@ export interface MissionSnapshot {
   traces: TraceSpan[];
   artifacts: MissionArtifact[];
   runs: MissionRun[];
+  notifications?: NotificationDelivery[];
 }
 
 const API_BASE =

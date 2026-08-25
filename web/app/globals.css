@@ -218,6 +218,12 @@ button:focus-visible { outline: 3px solid oklch(0.69 0.17 48 / .26); outline-off
 .receipt-gallery strong { display: block; margin: 5px 0; font-size: 11px; }
 
 .activity-panel { max-width: 850px; }
+.notification-proof { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; margin: 0 0 18px; padding: 14px; border: 1px solid color-mix(in oklch, var(--verified) 45%, var(--line)); border-radius: 8px; background: var(--verified-soft); }
+.notification-proof-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 7px; color: var(--verified); background: color-mix(in oklch, var(--verified) 16%, transparent); }
+.notification-proof small { display: block; color: var(--verified); font: 650 8px var(--mono); text-transform: uppercase; letter-spacing: .09em; }
+.notification-proof strong { display: block; margin-top: 4px; font-size: 12px; }
+.notification-proof p { margin: 5px 0; color: var(--muted); font-size: 10px; }
+.notification-proof code { color: var(--muted); font: 400 8px var(--mono); }
 .mission-spine { list-style: none; margin: 12px 0 0 10px; padding: 0; }
 .mission-spine li { position: relative; min-height: 64px; display: grid; grid-template-columns: 92px minmax(0, 1fr) 82px; align-items: start; gap: 16px; padding: 8px 0 17px 34px; border-left: 1px solid var(--line-strong); }
 .spine-dot { position: absolute; left: -11px; top: 5px; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 50%; background: var(--verified); color: white; }

@@ -4,7 +4,7 @@ import {
   AlertOctagon, ArrowRight, BadgeCheck, Boxes, Check, ChevronRight, CircleDot,
   Clock3, FileCheck2, FileWarning, Fingerprint, KeyRound, Layers3, LoaderCircle,
   LockKeyhole, Network, PackageCheck, RefreshCcw, Route, ScanLine, ShieldCheck,
-  Ship, Unplug, UsersRound, X,
+  Send, Ship, Unplug, UsersRound, X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -40,6 +40,7 @@ const fleet = [
   ["Security Pack", "security-pack@1.0.0", "Drafts bond and guarantee artifacts."],
   ["Adjuster Liaison", "adjuster-liaison@1.0.0", "Consumes independent review receipts."],
   ["Release Verifier", "carrier-verifier@1.0.0", "Requires order plus carrier read-back."],
+  ["Release Notifier", "release-notifier@1.0.0", "Sends marked synthetic operator notices after release."],
   ["Adjustment Monitor", "adjustment-monitor@1.0.0", "Keeps the long-tail mission open."],
 ];
 
@@ -128,6 +129,7 @@ export function MissionRoom() {
   );
 
   const released = snapshot.mission.release_state === "RELEASED";
+  const notification = snapshot.notifications?.at(-1);
   const selectedEvidence = snapshot.evidence.find((item) => item.id === selectedEvidenceId) ?? snapshot.evidence[0];
   const selectedArtifact = snapshot.artifacts.find((item) => item.id === selectedArtifactId) ?? snapshot.artifacts.at(-1);
   return (
@@ -142,7 +144,7 @@ export function MissionRoom() {
           <button className="icon-button" aria-label={snapshot.mission.truth_mode === "NATIVE" ? "Reload native mission" : "Reset exact fixture"} onClick={() => void reset()}><RefreshCcw size={16} /></button>
         </div>
       </header>
-      <div className="safety-banner"><ShieldCheck size={15} /><strong>Deterministic authority</strong><span>Agents propose. Humans approve. Partners issue receipts. No real parties contacted.</span><span className="banner-ref">case v{snapshot.mission.version}</span></div>
+      <div className="safety-banner"><ShieldCheck size={15} /><strong>Deterministic authority</strong><span>{notification ? "Marked synthetic operator notice delivered; no real cargo instruction sent." : "Agents propose. Humans approve. Partners issue receipts. External notices are disabled by default."}</span><span className="banner-ref">case v{snapshot.mission.version}</span></div>
       {error && <div className="error-banner"><AlertOctagon size={16} /> Action failed closed: {error}</div>}
       <nav className="workspace-tabs" aria-label="Mission workspace">
         <div className="tab-list">{tabs.map((item) => {
@@ -220,7 +222,11 @@ function ReceiptsPanel({ snapshot, onInspect }: { snapshot: MissionSnapshot; onI
 }
 
 function ActivityPanel({ snapshot }: { snapshot: MissionSnapshot }) {
-  return <div className="detail-panel activity-panel"><PanelHeading eyebrow="Hash-linked activity" title="Every change has a cause" detail="The mission is reconstructable from append-only events, actor identities, and trace spans." /><MissionSpine snapshot={snapshot} /></div>;
+  const notification = snapshot.notifications?.at(-1);
+  return <div className="detail-panel activity-panel"><PanelHeading eyebrow="Hash-linked activity" title="Every change has a cause" detail="The mission is reconstructable from append-only events, actor identities, and trace spans." />
+    {notification && <article className="notification-proof"><span className="notification-proof-icon"><Send size={18} /></span><div><small>Synthetic outbound proof · non-authoritative</small><strong>{notification.endpoint_label}</strong><p>Delivered only after verified carrier read-back. No real cargo instruction was sent.</p><code>{notification.provider_ref} · sha256:{notification.payload_digest.slice(0, 16)}</code></div><TruthBadge mode={notification.truth_mode ?? "ADAPTER"} /></article>}
+    <MissionSpine snapshot={snapshot} />
+  </div>;
 }
 
 function PanelHeading({ eyebrow, title, detail }: { eyebrow: string; title: string; detail: string }) {
@@ -230,10 +236,11 @@ function PanelHeading({ eyebrow, title, detail }: { eyebrow: string; title: stri
 function DecisionRail({ snapshot, nextAction, busy, onAdvance, onNavigate }: { snapshot: MissionSnapshot; nextAction: NextAction | null; busy: boolean; onAdvance: () => Promise<void>; onNavigate: (tab: WorkspaceTab) => void }) {
   const adjuster = hasReceipt(snapshot, "ADJUSTER_ACCEPTANCE");
   const carrier = hasReceipt(snapshot, "CARRIER_RELEASE_READBACK");
+  const notification = snapshot.notifications?.at(-1);
   const latestRun = snapshot.runs.at(-1);
   return <aside className="decision-rail" aria-labelledby="action-title">
     <div className="rail-heading"><span>Next decision</span><strong id="action-title">What needs you now</strong></div>
-    {nextAction ? <div className={`next-action tone-${nextAction.tone}`}><span className="action-eyebrow">{nextAction.eyebrow}</span><h2>{nextAction.title}</h2><p>{nextAction.detail}</p><button data-testid="primary-action" className="primary-button" disabled={busy} onClick={() => void onAdvance()}>{busy ? <LoaderCircle className="spin" size={17} /> : <CircleDot size={17} />}{busy ? "Recording…" : nextAction.button}{!busy && <ArrowRight size={16} />}</button></div> : <div className="release-complete"><BadgeCheck size={25} /><span className="action-eyebrow">No release action open</span><h2>Carrier read-back verified</h2><p>The container is released. Adjustment monitoring remains active and separate.</p></div>}
+    {nextAction ? <div className={`next-action tone-${nextAction.tone}`}><span className="action-eyebrow">{nextAction.eyebrow}</span><h2>{nextAction.title}</h2><p>{nextAction.detail}</p><button data-testid="primary-action" className="primary-button" disabled={busy} onClick={() => void onAdvance()}>{busy ? <LoaderCircle className="spin" size={17} /> : <CircleDot size={17} />}{busy ? "Recording…" : nextAction.button}{!busy && <ArrowRight size={16} />}</button></div> : <div className="release-complete"><BadgeCheck size={25} /><span className="action-eyebrow">No release action open</span><h2>Carrier read-back verified</h2><p>{notification ? `Marked synthetic notice delivered to ${notification.endpoint_label}.` : "The container is released. External notices remain disabled until an operator endpoint is configured."} Adjustment monitoring remains active and separate.</p></div>}
     {latestRun && <div className={`runtime-status status-${latestRun.status.toLowerCase()}`}><span><CircleDot size={13} /> Autonomous runtime</span><strong>{latestRun.status.replace("_", " ")}</strong><small>{latestRun.steps} bounded steps · {latestRun.reason.replaceAll("_", " ").toLowerCase()}</small></div>}
     <div className="authority-block">
       <div className="human-authority"><span>Human authority</span>{snapshot.approvals.length ? <strong className="verified"><Check size={14} /> Owner bond attested</strong> : <strong className="pending"><LockKeyhole size={14} /> Awaiting owner</strong>}</div>
@@ -294,6 +301,7 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Agent Identity + Gateway", "Consent-gated egress configuration; route proof pending", "ADAPTER"],
       ["Agent Observability", "OpenTelemetry topology, traces, and security spans", "ADAPTER"],
       ["Partner Cloud Run", "Independent insurer, adjuster, and carrier fixtures", "FIXTURE"],
+      ["Operator notification", "Allowlisted Slack webhook; marked synthetic and post-release only", snapshot.notifications?.at(-1)?.truth_mode ?? "FIXTURE"],
     ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
   </aside></div>;
 }

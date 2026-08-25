@@ -16,7 +16,13 @@ from cargo_release.models import (
     PubSubEnvelope,
     ReceiptEnvelope,
     ReceiptKind,
+    SyntheticNotificationAction,
     VersionedAction,
+)
+from cargo_release.notification import (
+    MissionNotificationService,
+    OperatorNotificationPort,
+    build_notification_port,
 )
 from cargo_release.partners import (
     issue_adjuster_review,
@@ -29,10 +35,16 @@ from cargo_release.security import ReceiptSecurityError
 from cargo_release.store import MissionNotFound, StoreError, build_mission_store
 
 
-def create_app(database_path: str | None = None) -> FastAPI:
+def create_app(
+    database_path: str | None = None,
+    notification_port: OperatorNotificationPort | None = None,
+) -> FastAPI:
     store = build_mission_store(database_path)
     engine = CargoReleaseEngine(store)
     runtime = MissionOrchestrator(engine)
+    notifications = MissionNotificationService(
+        store, notification_port or build_notification_port()
+    )
     app = FastAPI(
         title="Cargo Release Mission API",
         version="0.1.0",
@@ -40,6 +52,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
     )
     app.state.engine = engine
     app.state.runtime = runtime
+    app.state.notifications = notifications
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3024", "http://localhost:3024"],
@@ -117,7 +130,8 @@ def create_app(database_path: str | None = None) -> FastAPI:
 
     @app.post("/v1/missions/{mission_id}:run", response_model=MissionSnapshot)
     def run_mission(mission_id: str) -> MissionSnapshot:
-        return runtime.run(mission_id)
+        snapshot = runtime.run(mission_id)
+        return notifications.maybe_deliver_release(snapshot.mission.id)
 
     @app.post("/v1/missions/{mission_id}/approvals/owner-bond", response_model=MissionSnapshot)
     def approve(mission_id: str, action: VersionedAction) -> MissionSnapshot:
@@ -129,7 +143,17 @@ def create_app(database_path: str | None = None) -> FastAPI:
     )
     def approve_and_resume(mission_id: str, action: VersionedAction) -> MissionSnapshot:
         engine.approve_owner_bond(mission_id, action)
-        return runtime.run(mission_id)
+        snapshot = runtime.run(mission_id)
+        return notifications.maybe_deliver_release(snapshot.mission.id)
+
+    @app.post("/v1/missions/{mission_id}/notifications/release")
+    def notify_release(mission_id: str, action: SyntheticNotificationAction) -> dict[str, object]:
+        snapshot, created = notifications.deliver_release(
+            mission_id,
+            confirm_synthetic=action.confirm_synthetic,
+            actor=action.actor,
+        )
+        return {"created": created, "snapshot": snapshot.model_dump(mode="json")}
 
     @app.post("/v1/missions/{mission_id}:submit-security", response_model=MissionSnapshot)
     def submit(mission_id: str, action: VersionedAction) -> MissionSnapshot:

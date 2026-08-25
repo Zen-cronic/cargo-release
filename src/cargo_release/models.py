@@ -157,6 +157,18 @@ class MissionRun(BaseModel):
     updated_at: str
 
 
+class NotificationDelivery(BaseModel):
+    id: str
+    mission_id: str
+    kind: str
+    endpoint_label: str
+    provider_ref: str
+    payload_digest: str
+    truth_mode: TruthMode
+    status: str
+    delivered_at: str
+
+
 class MissionSnapshot(BaseModel):
     mission: Mission
     evidence: list[Evidence]
@@ -166,10 +178,16 @@ class MissionSnapshot(BaseModel):
     traces: list[TraceSpan]
     artifacts: list[MissionArtifact]
     runs: list[MissionRun]
+    notifications: list[NotificationDelivery]
 
 
 class VersionedAction(BaseModel):
     expected_version: int
+    actor: str = "operator.demo"
+
+
+class SyntheticNotificationAction(BaseModel):
+    confirm_synthetic: bool = False
     actor: str = "operator.demo"
 
 
