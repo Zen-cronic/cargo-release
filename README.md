@@ -225,21 +225,36 @@ Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `
 
 Current recording build, promoted 2026-08-25 after separate exact-revision approval:
 
-- controller `cargo-release-controller-00019-ton` at 100%, with `00014-ccg` retained Ready for
+- controller `cargo-release-controller-00021-tac` at 100%, with `00019-ton` retained Ready for
   rollback;
-- web `cargo-release-web-00014-pag` at 100%, with `00011-heg` retained Ready for rollback;
+- web `cargo-release-web-00016-nol` at 100%, with `00014-pag` retained Ready for rollback;
 - managed four-worker invocation `e-3277014e-be11-4945-acc9-658e1c0bbbb6` on Gemini 3.5 Flash;
 - canonical post-promotion rehearsal: 11 assertions and 5 captures passed, including Eventarc
   provenance, the Authority Map, Slack proof, all three bonus-model receipts, and the deterministic
   transition boundary.
 
 The first continuous take exposed a provider-valid Eventarc trace without the optional sampling
-suffix. Commit `59b2aed` repairs only that trace grammar; controller `00021-tac` and web `00016-nol`
-are staged at zero traffic on immutable digests. `deploy/promote_recording_candidate.sh` pins those
-exact candidates and the current `00019-ton` / `00014-pag` rollback pair, refuses missing or stale
-approval, promotes controller first, verifies its authenticated PostgreSQL health, then promotes
-web and requires canonical relay results `200/404/400`. Any mid-rollout failure attempts to restore
-the pinned pair before exiting.
+suffix. Commit `59b2aed` repairs only that trace grammar. The operator approved the exact repaired
+pair and rollback pair; `deploy/promote_recording_candidate.sh` promoted controller first, verified
+PostgreSQL health, promoted web, and passed canonical relay results `200/404/400`. Independent
+traffic/image audit confirmed both serving revisions and both rollback revisions Ready on immutable
+digests.
+
+The accepted continuous Proof-of-Action take published Pub/Sub message `21085704378869489` and
+recorded mission `mission-60b37a3d29f5` from native Eventarc intake through one owner attestation,
+adjuster rejection and bounded correction, five verified receipts, carrier read-back
+`CAR-14BD0DF9A6`, and marked Slack delivery `slack-a2e8028ddad0489a`. Final state is physical cargo
+`RELEASED`, General Average adjustment `OPEN`, version `9`, and completed seven-step run
+`run-3d20b4ed6f44`. The 1920x1080 H.264 source is 158.96 seconds, contains zero cuts or splices,
+has no browser or state-verification errors, and hashes to
+`59be694df6f7094da44ba1c458a7c22bf7711aa1738fc78dc59a61c261d782ed`.
+
+The entirely gitignored `film/` package synchronized that exact passing report and rendered one
+full-duration video source with no sequence, trim, or speed change. Verification passed at 159.02
+seconds with 0.059 seconds of frame-rounding delta; rendered SHA-256 is
+`40b7059451c0ee41c0d9deb726adf1524f973827045144fe02b4270c923bac8b`. The separate promo slate and
+thumbnail are not concatenated onto the official proof. Publication remains an operator-owned
+external action.
 
 Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
 supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
