@@ -223,6 +223,16 @@ Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `
 | Operator consequence | Secret Manager-backed Slack incoming webhook |
 | Observability | Cloud Logging, Cloud Trace, structured mission spans and hash-linked events |
 
+Current recording build, promoted 2026-08-25 after separate exact-revision approval:
+
+- controller `cargo-release-controller-00019-ton` at 100%, with `00014-ccg` retained Ready for
+  rollback;
+- web `cargo-release-web-00014-pag` at 100%, with `00011-heg` retained Ready for rollback;
+- managed four-worker invocation `e-3277014e-be11-4945-acc9-658e1c0bbbb6` on Gemini 3.5 Flash;
+- canonical post-promotion rehearsal: 11 assertions and 5 captures passed, including Eventarc
+  provenance, the Authority Map, Slack proof, all three bonus-model receipts, and the deterministic
+  transition boundary.
+
 Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
 supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
 a hidden prompt specifically to keep the bearer webhook out of shell history and chat.
