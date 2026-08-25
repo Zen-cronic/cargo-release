@@ -1,0 +1,28 @@
+{
+  "display_information": {
+    "name": "Cargo Release Demo",
+    "description": "Posts marked synthetic cargo-release demo notices after verified carrier read-back.",
+    "background_color": "#07131F"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Cargo Release Demo",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "incoming-webhook"
+      ]
+    }
+  },
+  "settings": {
+    "incoming_webhooks": {
+      "incoming_webhooks_enabled": true
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
