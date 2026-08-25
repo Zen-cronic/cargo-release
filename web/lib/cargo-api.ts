@@ -127,6 +127,10 @@ export function createDemoMission(): Promise<MissionSnapshot> {
   return request("/v1/missions/demo", { method: "POST" });
 }
 
+export function getMission(missionId: string): Promise<MissionSnapshot> {
+  return request(`/v1/missions/${encodeURIComponent(missionId)}`);
+}
+
 export function postMissionAction(
   missionId: string,
   path: string,

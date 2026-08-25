@@ -32,3 +32,13 @@ test("architecture truth and quarantined evidence stay inspectable", async ({ pa
     "Model output and managed memory never write release state",
   );
 });
+
+test("an existing mission can be reopened from the recording URL", async ({ page, request }) => {
+  const response = await request.post("http://127.0.0.1:8095/v1/missions/demo");
+  expect(response.ok()).toBeTruthy();
+  const snapshot = await response.json() as { mission: { id: string; case_ref: string } };
+
+  await page.goto(`/?mission=${encodeURIComponent(snapshot.mission.id)}`);
+  await expect(page.getByText(snapshot.mission.case_ref, { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset exact fixture" })).toBeVisible();
+});

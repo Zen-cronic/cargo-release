@@ -9,8 +9,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  createDemoMission, type Evidence, type MissionArtifact, type MissionSnapshot, postMissionAction,
-  type Receipt, type ReceiptKind, type TruthMode,
+  createDemoMission, type Evidence, getMission, type MissionArtifact, type MissionSnapshot,
+  postMissionAction, type Receipt, type ReceiptKind, type TruthMode,
 } from "@/lib/cargo-api";
 
 type Drawer = "architecture" | "fleet" | null;
@@ -91,7 +91,8 @@ export function MissionRoom() {
   const reset = useCallback(async () => {
     setBusy(true); setError(null); setTab("mission");
     try {
-      const next = await createDemoMission();
+      const requestedMission = new URLSearchParams(window.location.search).get("mission");
+      const next = requestedMission ? await getMission(requestedMission) : await createDemoMission();
       setSnapshot(next);
       setSelectedEvidenceId(next.evidence[0]?.id ?? null);
       setSelectedArtifactId(null);
@@ -138,7 +139,7 @@ export function MissionRoom() {
           <TruthBadge mode={snapshot.mission.truth_mode} />
           <button className="quiet-button" onClick={() => setDrawer("fleet")}><UsersRound size={15} /> Agent fleet</button>
           <button className="quiet-button" onClick={() => setDrawer("architecture")}><Network size={15} /> Architecture</button>
-          <button className="icon-button" aria-label="Reset exact fixture" onClick={() => void reset()}><RefreshCcw size={16} /></button>
+          <button className="icon-button" aria-label={snapshot.mission.truth_mode === "NATIVE" ? "Reload native mission" : "Reset exact fixture"} onClick={() => void reset()}><RefreshCcw size={16} /></button>
         </div>
       </header>
       <div className="safety-banner"><ShieldCheck size={15} /><strong>Deterministic authority</strong><span>Agents propose. Humans approve. Partners issue receipts. No real parties contacted.</span><span className="banner-ref">case v{snapshot.mission.version}</span></div>
@@ -160,7 +161,7 @@ export function MissionRoom() {
         </section>
         <DecisionRail snapshot={snapshot} nextAction={nextAction} busy={busy} onAdvance={advance} onNavigate={setTab} />
       </main>
-      <footer className="mission-footer"><span><CircleDot size={11} /> Local deterministic fixture</span><span>Release and General Average adjustment remain separate lifecycles.</span><span data-testid="adjustment-state"><RefreshCcw size={12} /> Adjustment <strong>{snapshot.mission.adjustment_state}</strong></span></footer>
+      <footer className="mission-footer"><span><CircleDot size={11} /> {snapshot.mission.truth_mode === "NATIVE" ? "Native Eventarc mission" : "Local deterministic fixture"}</span><span>Release and General Average adjustment remain separate lifecycles.</span><span data-testid="adjustment-state"><RefreshCcw size={12} /> Adjustment <strong>{snapshot.mission.adjustment_state}</strong></span></footer>
       {drawer && <SideDrawer drawer={drawer} snapshot={snapshot} onClose={() => setDrawer(null)} />}
       {receipt && <ReceiptDialog receipt={receipt} onClose={() => setReceipt(null)} />}
     </div>
@@ -171,7 +172,7 @@ function MissionPanel({ snapshot }: { snapshot: MissionSnapshot }) {
   const released = snapshot.mission.release_state === "RELEASED";
   const latest = snapshot.events.at(-1);
   return <div className="mission-panel">
-    <div className="hero-heading"><div><p className="eyebrow">Business consequence</p><h1>{released ? "Cargo released" : "Cargo held at North Harbor"}</h1><p>{heroSentence(snapshot)}</p></div><div className={`release-state ${released ? "verified" : "held"}`}>{released ? <PackageCheck size={17} /> : <LockKeyhole size={17} />}{released ? "RELEASED" : "HELD"}</div></div>
+    <div className="hero-heading"><div><p className="eyebrow">Business consequence · physical release</p><h1><span>Cargo</span>{" "}<em>{released ? "released" : "held at North Harbor"}</em></h1><p>{heroSentence(snapshot)}</p></div><div className={`release-state ${released ? "verified" : "held"}`}>{released ? <PackageCheck size={17} /> : <LockKeyhole size={17} />}{released ? "RELEASED" : "HELD"}</div></div>
     <HeldCargoHero snapshot={snapshot} />
     <div className="mission-summary-row">
       <article><span>Latest verified transition</span><strong>{latest ? eventTitle(latest.event_type) : "Mission opened"}</strong><small>{latest?.actor ?? "eventarc.fixture"} · {latest?.event_hash.slice(0, 8) ?? "pending"}</small></article>
@@ -288,9 +289,9 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Eventarc intake", "Authenticated CloudEvent opens one idempotent mission", snapshot.mission.truth_mode],
       ["Agent Runtime + ADK", "Managed coordinator deployment with one bounded advance tool", "ADAPTER"],
       ["Memory Bank", "Reviewed release context only; never authoritative state", memoryMode],
-      ["Model Armor", "Inline prompt-injection and data-leak screening through Gateway", "ADAPTER"],
+      ["Model Armor", "Managed template retained; gateway enforcement remains pending", "ADAPTER"],
       ["Agent Registry", "Versioned fleet discovery and approved endpoints", "ADAPTER"],
-      ["Agent Identity + Gateway", "Zero-trust egress to partner services", "ADAPTER"],
+      ["Agent Identity + Gateway", "Consent-gated egress configuration; route proof pending", "ADAPTER"],
       ["Agent Observability", "OpenTelemetry topology, traces, and security spans", "ADAPTER"],
       ["Partner Cloud Run", "Independent insurer, adjuster, and carrier fixtures", "FIXTURE"],
     ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
