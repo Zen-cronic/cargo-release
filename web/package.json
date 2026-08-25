@@ -10,6 +10,7 @@
     "smoke:route": "node scripts/smoke.mjs",
     "smoke:relay": "node scripts/smoke-relay.mjs",
     "capture:visual": "node scripts/capture.mjs",
+    "record:continuous": "node scripts/record-continuous-demo.mjs",
     "rehearse:production": "node scripts/rehearse-production.mjs",
     "test:relay": "node --test tests/relay-policy.test.ts",
     "test:metrics": "node --test tests/mission-metrics.test.ts",
