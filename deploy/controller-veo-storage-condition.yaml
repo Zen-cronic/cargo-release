@@ -1,0 +1,4 @@
+title: cargo_release_veo_prefix
+description: Allow Cargo Release controller access only to post-release synthetic replay objects.
+expression: >-
+  resource.name.startsWith("projects/_/buckets/ata-2026-cargo-cargo-release-runtime/objects/post-release-media/")
