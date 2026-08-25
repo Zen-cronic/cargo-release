@@ -20,14 +20,14 @@ services:
       default: deny
       operator_actor_source: server environment only
       public_reads:
+        - GET /health
         - GET /v1/missions/{mission_id}
-        - GET /v1/missions/{mission_id}/activity
-        - GET /v1/missions/{mission_id}/model-receipts
+        - GET /v1/missions/{mission_id}/models/veo-replay/media
       bounded_commands:
         - POST /v1/missions/demo
-        - POST /v1/missions/{mission_id}/start
-        - POST /v1/missions/{mission_id}/owner-bond
-        - POST /v1/missions/{mission_id}/replay
+        - POST /v1/missions/{mission_id}:run
+        - POST /v1/missions/{mission_id}/approvals/owner-bond:approve-and-resume
+        - POST /v1/missions/{mission_id}/models/veo-replay:generate
       forbidden: query forwarding, traversal, arbitrary bodies, client actor override, privileged controller routes
   cargo-release-coordinator:
     runtime: agent-runtime
