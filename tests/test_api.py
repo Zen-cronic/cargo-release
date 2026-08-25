@@ -166,7 +166,23 @@ def test_eventarc_native_label_requires_cloud_run_and_trace(
     )
     assert (
         eventarc_truth_mode(
+            event_id="evt-unsampled",
+            event_source="//pubsub.googleapis.com/projects/demo-project/topics/casualties",
+            trace_context="fedcba98765432100123456789abcdef/3784152388714607850",
+        )
+        is TruthMode.NATIVE
+    )
+    assert (
+        eventarc_truth_mode(
             event_id="evt-1", event_source="//pubsub.googleapis.com", trace_context=None
+        )
+        is TruthMode.FIXTURE
+    )
+    assert (
+        eventarc_truth_mode(
+            event_id="evt-malformed-trace",
+            event_source="//pubsub.googleapis.com/projects/demo-project/topics/casualties",
+            trace_context="fedcba98765432100123456789abcde/decimal-span",
         )
         is TruthMode.FIXTURE
     )
