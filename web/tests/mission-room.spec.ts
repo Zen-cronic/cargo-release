@@ -31,6 +31,81 @@ test("architecture truth and quarantined evidence stay inspectable", async ({ pa
   await expect(page.locator(".architecture-rule")).toContainText(
     "Model output and managed memory never write release state",
   );
+  await expect(page.getByText("Fail-closed IAP authorization", { exact: false })).toBeVisible();
+  await expect(page.getByText(/route proof pending|enforcement remains pending/)).toHaveCount(0);
+});
+
+test("authority map exposes real worker scopes and a duplicate-safe friction metric", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Authority map", exact: true }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Authority moves. Agents do not own it." }),
+  ).toBeVisible();
+  await expect(page.getByText("release_authority=false for every model and worker")).toBeVisible();
+  await expect(page.getByText("Evidence worker", { exact: true })).toBeVisible();
+  await expect(page.getByText("Security worker", { exact: true })).toBeVisible();
+  await expect(page.getByText("Authority worker", { exact: true })).toBeVisible();
+  await expect(page.getByText("Recovery worker", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("human-attestations")).toHaveText("0");
+  await expect(page.getByTestId("friction-metric")).toContainText("0 / 8");
+
+  const action = page.getByTestId("primary-action");
+  await action.click();
+  await action.click();
+  await expect(page.getByTestId("human-attestations")).toHaveText("1");
+  await expect(page.getByTestId("friction-metric")).toContainText("7 / 8");
+  await expect(page.getByTestId("friction-metric")).toContainText("Marked notice 0/1");
+
+  await page.getByRole("button", { name: /Agent fleet/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Agents versus deterministic actors" }),
+  ).toBeVisible();
+  await expect(page.getByText("Manifest Evidence Worker", { exact: true })).toBeVisible();
+  await expect(page.getByText("Deterministic Receipt Saga", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.getByRole("button", { name: "Use light theme" }).click();
+  await expect(page.locator(".app-shell")).toHaveClass(/theme-light/);
+  await expect(page.getByRole("button", { name: "Use dark theme" })).toBeVisible();
+
+  const lightThemeContrast = await page.evaluate(() => {
+    const heading = document.querySelector<HTMLElement>(".panel-heading h1");
+    const stage = document.querySelector<HTMLElement>(".workspace-stage");
+    if (!heading || !stage) return 0;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return 0;
+    const linearSrgb = (color: string) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data]
+        .slice(0, 3)
+        .map((channel) => channel / 255)
+        .map((channel) => channel <= 0.04045
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4);
+    };
+    const luminance = (channels: number[]) => channels
+      .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+
+    const foreground = luminance(linearSrgb(getComputedStyle(heading).color));
+    const background = luminance(linearSrgb(
+      getComputedStyle(stage).getPropertyValue("--background"),
+    ));
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+  });
+  expect(lightThemeContrast).toBeGreaterThanOrEqual(4.5);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
 });
 
 test("advisory models are visible but cannot authorize cargo", async ({ page }) => {

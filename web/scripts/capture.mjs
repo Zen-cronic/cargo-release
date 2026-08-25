@@ -10,13 +10,27 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, dev
 await page.goto(target);
 await page.getByRole("heading", { name: "Cargo held at North Harbor" }).waitFor();
 await page.screenshot({ path: `${output}/held.png`, fullPage: true });
+await page.getByRole("button", { name: "Authority map", exact: true }).click();
+await page.getByRole("heading", { name: "Authority moves. Agents do not own it." }).waitFor();
+await page.screenshot({ path: `${output}/authority-held.png`, fullPage: true });
 
 const action = page.getByTestId("primary-action");
 for (const label of ["Start autonomous mission", "Approve bond & resume"]) {
   await action.getByText(label, { exact: true }).waitFor();
   await action.click();
 }
+await page.getByText("Container released", { exact: true }).waitFor();
+await page.screenshot({ path: `${output}/authority-released.png`, fullPage: true });
+
+await page.setViewportSize({ width: 390, height: 844 });
+await page.screenshot({ path: `${output}/authority-mobile.png`, fullPage: true });
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.getByRole("button", { name: "Mission", exact: true }).click();
 await page.getByRole("heading", { name: "Cargo released" }).waitFor();
 await page.screenshot({ path: `${output}/released.png`, fullPage: true });
+
+await page.getByRole("button", { name: "Authority map", exact: true }).click();
+await page.getByRole("button", { name: "Use light theme" }).click();
+await page.screenshot({ path: `${output}/authority-light.png`, fullPage: true });
 await browser.close();
 console.log(`visual captures written to ${output}`);

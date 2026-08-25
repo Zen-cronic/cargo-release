@@ -12,6 +12,7 @@
     "capture:visual": "node scripts/capture.mjs",
     "rehearse:production": "node scripts/rehearse-production.mjs",
     "test:relay": "node --test tests/relay-policy.test.ts",
+    "test:metrics": "node --test tests/mission-metrics.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

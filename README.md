@@ -1,141 +1,245 @@
 # Cargo Release
 
-Working name for a Fortified Enterprise Fleet hackathon candidate. Cargo Release coordinates a fictional General Average security mission from casualty notice to independently verified cargo release.
+**A receipt-gated agent fleet for one of shipping’s strangest handoffs: getting fictional cargo
+released after a General Average casualty without letting an AI become the insurer, adjuster, or
+carrier.**
 
-The deterministic controller—not an LLM—owns mission state. Agents may reconcile evidence and draft artifacts, while human approval and signed insurer, adjuster, and carrier receipts gate consequential transitions. The demo never contacts a real party and never decides coverage, liability, contribution, or legal sufficiency.
+[Open the live Google Cloud deployment](https://cargo-release-web-1015646664425.us-central1.run.app)
+· [Inspect the retained Slack proof mission](https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-f29320b1dcd0)
 
-## Local backend
+> **The twist:** agents do the work; receipts—not agents—hold the keys. One owner attestation can
+> drive the security submission, rejection, correction, acceptance, carrier order, carrier
+> read-back, and a marked operator notification, but physical release is a deterministic state
+> transition gated by independently signed receipts.
 
-This repository follows the workspace Python contract:
+Cargo Release targets **The Fortified Enterprise Fleet**. Its unlikely hero is the cargo-interest
+operator caught between a casualty notice and three independent institutions. The demo is entirely
+fictional and synthetic: it never decides coverage, liability, contribution, legal sufficiency, or
+real cargo release.
 
-```bash
-export VIRTUAL_ENV="$HOME/.pyenv/versions/.cargo-release"
-export PATH="$VIRTUAL_ENV/bin:$PATH"
-poetry install
-poetry run uvicorn cargo_release.api:app --reload --port 8095
+## What the live mission does
+
+1. Pub/Sub and Eventarc deliver an authenticated casualty CloudEvent. Duplicate delivery converges
+   on one Cloud SQL mission.
+2. The bounded controller reconciles four evidence sources, quarantines model-addressed text, and
+   drafts a content-addressed owner bond.
+3. The workflow stops at its only human gate. The operator attests the synthetic owner bond.
+4. The controller autonomously obtains an insurer guarantee, submits the security pack, preserves
+   an adjuster rejection, corrects the missing declaration reference, and obtains acceptance.
+5. The carrier independently issues a release order and confirms the read-back. Only then does
+   physical cargo become `RELEASED`; the General Average adjustment remains `OPEN`.
+6. A marked, idempotent Slack notice is delivered to the operator-owned endpoint after release. It
+   explicitly says that no real cargo action occurred.
+
+The managed workflow is deliberately dual-path: Eventarc and the authenticated web relay both call
+the deterministic controller directly. Agent Runtime is a governed operator/delegation plane with
+read-only inspection workers and one lease-protected resume tool; it is not falsely drawn as the
+main Eventarc hop.
+
+## Measured friction removed
+
+The submission uses a falsifiable capability count, not an invented time-savings benchmark:
+
+```text
+1 human attestation
+  → 5 unique signed partner receipts
+  + 1 security submission
+  + 1 automatic correction
+  + 1 marked post-release notification
+  = 8 autonomous downstream actions
 ```
 
-Create a demo mission with `POST /v1/missions/demo`, then call `POST /v1/missions/{id}:run`. The bounded runtime reconciles evidence, generates the owner-bond artifact, and yields at the human approval gate. `POST /v1/missions/{id}/approvals/owner-bond:approve-and-resume` records that attestation and autonomously completes insurer issuance, adjuster rejection and correction, acceptance, carrier release order, and carrier read-back.
+The metric deduplicates receipt kinds, event types, and delivered notifications, so redelivery
+cannot inflate it. Reproduce the invariant with:
 
-Every partner receipt is HMAC-signed by a distinct synthetic identity. `RELEASED` requires adjuster acceptance, carrier release order, and carrier read-back; the separate adjustment lifecycle remains `OPEN`. Runtime leases prevent concurrent execution, the 12-step cap stops loops, completed transitions are resumable, and artifacts retain immutable content digests and revisions.
+```bash
+cd web
+npm ci
+npm run test:metrics
+```
 
-## Google-managed execution path
+The managed durability proof also sent the same casualty event six times concurrently across three
+Cloud Run instances. All six requests returned successfully and converged on one declaration, one
+run, and one human gate.
 
-The deployable vertical slice keeps the same deterministic controller while adding managed
-execution evidence:
+## Architecture
 
-- Pub/Sub and Eventarc deliver a real CloudEvent envelope to an idempotent casualty endpoint.
-- an ADK coordinator deploys to Agent Runtime with Agent Identity, bounded inspect/advance tools,
-  and a fail-closed Gemini 3.5+ eligibility guard; its model inference uses Vertex AI's `global`
-  endpoint while the governed runtime remains in `us-central1`;
-- private insurer, adjuster, and carrier Cloud Run services are invoked with Google-signed ID
-  tokens and return separately signed receipts;
-- the public Next.js shell relays same-origin requests through its server runtime, which uses the
-  web service identity to invoke the private controller with a Google-signed ID token;
-- Memory Bank receives reviewed post-release facts only; it cannot mutate mission state;
-- Cloud SQL for PostgreSQL persists deterministic authority plus separately labeled advisory
-  model receipts across revisions and concurrent instances;
-- managed Gemma 4 (`google/gemma-4-26b-a4b-it-maas`) reviews only a sanitized owner-bond packet
-  at the human gate, exposes no tools, and records `release_authority=false`;
-- Gemini Embedding 2 ranks a filtered corpus of reviewed synthetic cases without exposing scores,
-  thresholds, precedent claims, or state authority;
-- Veo 3.1 Fast generates an explicitly confirmed, post-release training replay into private Cloud
-  Storage; the replay is labeled synthetic and not evidence, and it cannot change mission state; and
-- Agent Registry, Agent Gateway, Model Armor, and Agent Observability provide discovery,
-  policy-enforced routing, inline screening, and end-to-end telemetry.
+![Cargo Release Google Cloud authority architecture](docs/architecture.svg)
 
-Local execution remains deterministic and labels all unconnected surfaces honestly. See the
-[per-project Google Cloud setup checklist](../submission/cargo-release/google-cloud-setup-checklist.md)
-and [`deploy/service-inventory.yaml`](deploy/service-inventory.yaml) for the exact service boundary.
-SQLite remains an explicit local fixture. The managed controller requires Cloud SQL and fails
-closed when its PostgreSQL configuration is missing.
+The diagram is intentionally an authority map, not a logo inventory:
 
-Enable the deterministic local Gemma fixture with:
+- **Authenticated intake:** Pub/Sub → Eventarc and the public Next.js Cloud Run service’s
+  fail-closed relay.
+- **ADK coordination plane:** one Gemini 3.5+ coordinator and four separately scoped sub-agents.
+- **Deterministic authority:** a private Cloud Run controller is the sole writer to Cloud SQL for
+  PostgreSQL.
+- **Independent keys:** human owner attestation plus HMAC-signed insurer, adjuster, and carrier
+  receipts from identity-isolated private Cloud Run fixtures.
+- **Governance:** Agent Identity, Agent Gateway, Registry, Model Armor, Cloud Trace, structured
+  spans, and reviewed Memory Bank facts.
+- **Observable consequence:** receipt-gated physical release followed by exactly one marked
+  synthetic Slack delivery.
+
+### ADK agent roster
+
+The managed agent tree is explicit and tool-scoped:
+
+| ADK agent | Tool authority | Output boundary |
+|---|---|---|
+| `cargo_release_coordinator` | One `start_bounded_mission` tool | Performs one fail-closed preflight and at most one controller lease probe |
+| `manifest_evidence_worker` | `inspect_evidence_scope` only | Statuses, fact keys, and digests; never raw evidence text |
+| `security_pack_worker` | `inspect_security_scope` only | Human, insurer, adjuster, and artifact references; never receipt payloads |
+| `carrier_authority_worker` | `inspect_authority_scope` only | Acceptance, order, and read-back references; never signatures |
+| `runtime_recovery_worker` | `assess_runtime_recovery` only | Classifies durable state; cannot acquire a lease or advance |
+
+Each worker uses structured output, cannot transfer to peers, inherits the eligible Gemini model,
+and returns `release_authority=false`. Tool errors become a degraded report with
+`retry_in_this_turn=false`. The controller’s atomic lease—not the model—decides whether a recorded
+`RUNNING` operation is active or stale.
+
+The receipt saga, notification service, model adapters, and adjustment monitor are deterministic
+capability actors. They are shown separately and are not padded into the ADK agent count.
+
+### Google AI models
+
+The required coordinator uses `gemini-3.5-flash` through Vertex AI’s `global` endpoint while the
+governed Agent Runtime remains in `us-central1`. The source fails closed if configured below Gemini
+3.5.
+
+Three additional Google models are integrated for the event’s optional model bonus:
+
+- **Gemma 4** (`google/gemma-4-26b-a4b-it-maas`) reviews a sanitized owner-bond packet. It has no
+  tools and stores a zero-authority receipt.
+- **Gemini Embedding 2** ranks eight reviewed synthetic cases. Scores and thresholds are withheld;
+  results are context, not precedent or a release branch.
+- **Veo 3.1 Fast** generates a four-second post-release training replay into a private Cloud Storage
+  prefix. Generation requires explicit training-only confirmation and cannot change committed
+  release state.
+
+Managed model failure remains visible and never blocks, approves, or advances cargo.
+
+## Safety and authorization boundaries
+
+- The browser can reach only an exact method/path allowlist in the server relay. Query forwarding,
+  raw partner receipts, notifications, internal retries, and arbitrary controller mutations fail
+  closed.
+- The owner actor is injected by the authenticated web service; a browser-supplied actor is
+  rejected.
+- Agent Gateway is bound to the Agent Runtime identity with a fail-closed IAP authorization policy
+  and an exact Registry endpoint allowlist.
+- Prompt-injection-shaped evidence remains visible and quarantined. Scoped ADK workers never
+  receive its raw text.
+- Managed state requires Cloud SQL. SQLite is allowed only as an explicitly labeled local fixture.
+- Every partner receipt is issuer-bound, signed, digest-addressed, idempotent, and valid only from
+  an allowed prior state.
+- Slack delivery is post-read-back, marked synthetic, allowlisted to Slack webhook hosts, and
+  idempotent. The webhook URL lives only in Secret Manager and is never persisted or printed.
+- Memory Bank stores reviewed post-release facts only. Model and memory output cannot write mission
+  state.
+
+## Run locally
+
+Requirements: Python 3.12, Poetry, Node.js 24+, and npm.
+
+Terminal 1 — deterministic fixture controller:
+
+```bash
+poetry install
+poetry run uvicorn cargo_release.api:app --host 127.0.0.1 --port 8095
+```
+
+Terminal 2 — Next.js mission room:
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Open <http://127.0.0.1:3024>. The local path uses synthetic evidence, local partner fixtures, and
+SQLite; it sends no Slack message and makes no real-party call.
+
+Optional deterministic model fixtures:
 
 ```bash
 export CARGO_RELEASE_GEMMA_CRITIC_ENABLED=1
 export CARGO_RELEASE_GEMMA_CRITIC_MODE=FIXTURE
-```
-
-The managed path instead sets `CARGO_RELEASE_MODEL_PROJECT`, uses the exact global Gemma model,
-and relies on the controller's attached Google identity. A degraded model call remains visible but
-never blocks, approves, or advances cargo. The explicit retry endpoint requires
-`confirm_non_authoritative=true`.
-
-Enable the deterministic reviewed-case fixture with:
-
-```bash
 export CARGO_RELEASE_EMBEDDING_RETRIEVAL_ENABLED=1
 export CARGO_RELEASE_EMBEDDING_RETRIEVAL_MODE=FIXTURE
-```
-
-The managed retrieval path uses `gemini-embedding-2` at `global` with 128 dimensions. It embeds a
-sanitized query and eight reviewed synthetic examples, retains the vector-set digest, and shows
-only ordinal top-k results plus factual differences. Similarity scores never appear as confidence,
-probability, precedent, or a release branch.
-
-Enable the deterministic post-release replay fixture with:
-
-```bash
 export CARGO_RELEASE_VEO_REPLAY_ENABLED=1
 export CARGO_RELEASE_VEO_REPLAY_MODE=FIXTURE
 ```
 
-The managed replay path uses `veo-3.1-fast-generate-001` in `us-central1` and additionally sets:
+## Reproducible verification
+
+Default local contract:
 
 ```bash
-export CARGO_RELEASE_MODEL_PROJECT=ata-2026-cargo
-export CARGO_RELEASE_VEO_OUTPUT_URI=gs://ata-2026-cargo-cargo-release-runtime/post-release-media/
-export CARGO_RELEASE_VEO_POLL_SECONDS=10
-export CARGO_RELEASE_VEO_MAX_POLLS=60
-```
-
-Generation is available only after committed `RELEASED` state and verified carrier read-back, and
-requires `confirm_training_only=true`. The controller streams only digest-verified media from the
-configured private prefix. The generated asset is training material—not evidence, an operational
-instruction, or release authority. Do not enable fixture mode in a managed deployment.
-
-## Local frontend
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-Open `http://127.0.0.1:3024`. The default Mission view keeps the business consequence and the only open decision in frame; Evidence, generated Documents, partner Receipts, proposal-only AI checks, and hash-linked Activity are progressively disclosed in separate workspaces.
-
-## Verification
-
-```bash
-export VIRTUAL_ENV="$HOME/.pyenv/versions/.cargo-release"
-export PATH="$VIRTUAL_ENV/bin:$PATH"
-poetry run pytest
 poetry run ruff check src tests
 poetry run mypy src
+poetry run pytest
+
 cd web
+npm run test:relay
+npm run test:metrics
 npm run check
 npm run build
 npm run test:e2e
 ```
 
-Current model checkpoint: 42 default backend/API/partner/model tests pass, plus five isolated
-PostgreSQL acceptance tests (`47 passed` total). Five Playwright journeys cover the
-one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine,
-architecture truth labels, the visible zero-authority Gemma receipt, and the explicitly confirmed
-post-release Veo training replay. The backend suite also
-covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed
-memory, private-partner selection, native provenance propagation, sanitized model input,
-rank-only reviewed-case retrieval, degraded-mode continuity, receipt idempotency, and PostgreSQL
-restart persistence. The live Veo product-path probe additionally verifies the exact model,
-operation name, private object URI and SHA-256, four-second 1280x720 H.264 media, and unchanged
-mission version.
+The five PostgreSQL acceptance tests are intentionally skipped unless
+`CARGO_RELEASE_TEST_DATABASE_URL` points to a disposable PostgreSQL database. They prove restart
+persistence, duplicate-event convergence, lease exclusion, duplicate-receipt safety, and model
+receipt persistence:
+
+```bash
+export CARGO_RELEASE_TEST_DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:5432/cargo_release_test'
+poetry run pytest tests/test_postgres_store.py
+```
+
+Managed probes are explicit and state-changing; run them only against an operator-approved test
+project:
+
+- `scripts/probe_managed_cloudsql.py`
+- `scripts/probe_managed_bonus_models.py`
+- `scripts/probe_managed_notification.py`
+- `web/scripts/rehearse-production.mjs` (read-only retained-mission rehearsal)
+
+## Managed deployment inventory
+
+Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `global`
+
+| Surface | Managed proof |
+|---|---|
+| Public product | `cargo-release-web` on Cloud Run |
+| Deterministic controller | Private `cargo-release-controller` on Cloud Run |
+| Durable authority | Cloud SQL PostgreSQL 16 instance `cargo-release-postgres` |
+| Agent runtime | Vertex AI Agent Runtime + Agent Identity + automatic Registry entry |
+| Event intake | Pub/Sub + Eventarc with retained CloudEvent and trace identifiers |
+| Partner boundary | Three private Cloud Run services with separate service accounts |
+| Governance | Agent Gateway, IAP request authorization, Registry, Model Armor |
+| Advisory models | Vertex AI Gemma 4, Gemini Embedding 2, and Veo 3.1 Fast |
+| Reviewed memory | Vertex AI Memory Bank, post-release facts only |
+| Operator consequence | Secret Manager-backed Slack incoming webhook |
+| Observability | Cloud Logging, Cloud Trace, structured mission spans and hash-linked events |
+
+Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
+supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
+a hidden prompt specifically to keep the bearer webhook out of shell history and chat.
 
 ## Truth labels
 
-- `FIXTURE`: deterministic local evidence or partner sandbox.
-- `ADAPTER`: a production-shaped port is present but not connected to a managed service.
-- `NATIVE`: the request traversed a configured Google-managed surface and retained its receipt/trace identifier.
+- `NATIVE`: the request retained a Google-managed resource, event, operation, or trace identifier.
+- `ADAPTER`: production-shaped code or configuration exists but this mission has no managed
+  receipt for that surface.
+- `FIXTURE`: declared synthetic evidence, partner data, or local behavior.
 
-No model receipt authorizes a state transition. Repository defaults disable external model calls
-and real-party actions unless the corresponding managed adapter is explicitly configured.
+The live interface applies these labels per mission. It never upgrades a local fixture merely
+because a Google Cloud service exists elsewhere in the project.
+
+## Demo safety statement
+
+Cargo Release demonstrates architecture and workflow control with fictional data. “Released” means
+the synthetic mission reached its deterministic terminal state after verified fixture receipts. It
+does not release real cargo, communicate a legal conclusion, settle General Average contribution,
+or instruct a real insurer, adjuster, carrier, terminal, or cargo owner.

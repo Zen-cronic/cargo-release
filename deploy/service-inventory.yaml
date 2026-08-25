@@ -16,6 +16,19 @@ services:
     source: web/Dockerfile
     identity: cargo-web
     ingress: public-demo
+    relay_authorization:
+      default: deny
+      operator_actor_source: server environment only
+      public_reads:
+        - GET /v1/missions/{mission_id}
+        - GET /v1/missions/{mission_id}/activity
+        - GET /v1/missions/{mission_id}/model-receipts
+      bounded_commands:
+        - POST /v1/missions/demo
+        - POST /v1/missions/{mission_id}/start
+        - POST /v1/missions/{mission_id}/owner-bond
+        - POST /v1/missions/{mission_id}/replay
+      forbidden: query forwarding, traversal, arbitrary bodies, client actor override, privileged controller routes
   cargo-release-coordinator:
     runtime: agent-runtime
     source: src/cargo_release/adk_agent.py
@@ -25,6 +38,29 @@ services:
     model_inference_location: global
     governance_location: us-central1
     registry: automatic after Agent Runtime deployment
+    root_tool:
+      name: start_bounded_mission
+      calls_per_turn: 1
+      mutation_scope: one lease-protected controller POST after read-only preflight
+    delegation:
+      transfer_policy: root-to-worker only; peer transfer denied
+      worker_mode: single_turn
+      raw_content_access: none
+      tool_error_policy: return DEGRADED; no retry in the same turn
+      workers:
+        - name: manifest_evidence_worker
+          tool: inspect_evidence_scope
+          scope: verified status, fact keys, and digests only
+        - name: security_pack_worker
+          tool: inspect_security_scope
+          scope: human, insurer, and adjuster references only
+        - name: carrier_authority_worker
+          tool: inspect_authority_scope
+          scope: acceptance, order, and read-back receipts only
+        - name: runtime_recovery_worker
+          tool: assess_runtime_recovery
+          scope: durable run classification without lease acquisition
+    invariant: every model and worker returns release_authority=false
   insurer-fixture:
     runtime: cloud-run
     app: cargo_release.partners:insurer_app
@@ -55,7 +91,7 @@ managed_surfaces:
     role: coordinator automatic registration plus partner REST discovery
     current_local_mode: ADAPTER
   agent_gateway:
-    role: identity-aware partner egress and policy enforcement
+    role: fail-closed identity-aware authorization with an exact Agent Registry allowlist
     current_local_mode: ADAPTER
   model_armor:
     role: inline ingress/egress prompt-injection and sensitive-data screening
