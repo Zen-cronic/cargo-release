@@ -233,6 +233,14 @@ Current recording build, promoted 2026-08-25 after separate exact-revision appro
   provenance, the Authority Map, Slack proof, all three bonus-model receipts, and the deterministic
   transition boundary.
 
+The first continuous take exposed a provider-valid Eventarc trace without the optional sampling
+suffix. Commit `59b2aed` repairs only that trace grammar; controller `00021-tac` and web `00016-nol`
+are staged at zero traffic on immutable digests. `deploy/promote_recording_candidate.sh` pins those
+exact candidates and the current `00019-ton` / `00014-pag` rollback pair, refuses missing or stale
+approval, promotes controller first, verifies its authenticated PostgreSQL health, then promotes
+web and requires canonical relay results `200/404/400`. Any mid-rollout failure attempts to restore
+the pinned pair before exiting.
+
 Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
 supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
 a hidden prompt specifically to keep the bearer webhook out of shell history and chat.
