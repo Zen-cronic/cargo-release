@@ -92,6 +92,38 @@ try {
     "Marked synthetic notice delivered to operator-owned Slack #general.",
     { exact: false },
   ).waitFor();
+  await page.getByRole("button", { name: "Authority map", exact: true }).click();
+  await page.getByRole("heading", {
+    name: "Authority moves. Agents do not own it.",
+  }).waitFor();
+  await page.getByText(
+    "release_authority=false for every model and worker",
+    { exact: true },
+  ).waitFor();
+  for (const worker of [
+    "Evidence worker",
+    "Security worker",
+    "Authority worker",
+    "Recovery worker",
+  ]) {
+    await page.getByText(worker, { exact: true }).waitFor();
+  }
+  await page.getByTestId("human-attestations").getByText(
+    "1",
+    { exact: true },
+  ).waitFor();
+  await page.getByTestId("friction-metric").getByText(
+    "8 / 8",
+    { exact: false },
+  ).waitFor();
+  recordAssertion("authority_map_and_friction_metric_are_visible", {
+    human_attestations: 1,
+    autonomous_downstream_actions: 8,
+    workers: 4,
+    release_authority: false,
+  });
+  await capture("02-authority-map", true);
+
   await page.getByRole("button", { name: /^Activity \d+$/ }).click();
   await page.getByText("Synthetic outbound proof · non-authoritative", {
     exact: true,
@@ -101,7 +133,7 @@ try {
     endpoint: "operator-owned Slack #general",
     provider_ref: "slack-a86e1c8442bf4cf0",
   });
-  await capture("02-slack-activity");
+  await capture("03-slack-activity");
 
   await openMission("models");
   await page.getByRole("button", { name: /^AI checks \d+$/ }).click();
@@ -130,7 +162,7 @@ try {
     ],
     release_authority_false_count: 3,
   });
-  await capture("03-model-receipts", true);
+  await capture("04-model-receipts", true);
 
   await page.getByRole("button", { name: "Architecture", exact: true }).click();
   const architecture = page.getByRole("dialog", { name: "Architecture" });
@@ -142,7 +174,7 @@ try {
   recordAssertion("deterministic_transition_boundary_is_visible", {
     heading: "Transition ownership",
   });
-  await capture("04-architecture-boundary");
+  await capture("05-architecture-boundary");
 
   report.status = "PASSED";
 } catch (error) {
