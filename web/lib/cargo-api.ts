@@ -107,6 +107,21 @@ export interface NotificationDelivery {
   delivered_at: string;
 }
 
+export interface ModelReceipt {
+  id: string;
+  kind: string;
+  model_id: string;
+  location: string;
+  request_ref: string;
+  input_digest: string;
+  output_digest: string;
+  status: "COMPLETED" | "DEGRADED" | "PENDING";
+  truth_mode: TruthMode;
+  result: Record<string, unknown>;
+  release_authority: boolean;
+  created_at: string;
+}
+
 export interface MissionSnapshot {
   mission: Mission;
   evidence: Evidence[];
@@ -117,6 +132,7 @@ export interface MissionSnapshot {
   artifacts: MissionArtifact[];
   runs: MissionRun[];
   notifications?: NotificationDelivery[];
+  model_receipts?: ModelReceipt[];
 }
 
 const API_BASE =

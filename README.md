@@ -32,15 +32,31 @@ execution evidence:
   tokens and return separately signed receipts;
 - the public Next.js shell relays same-origin requests through its server runtime, which uses the
   web service identity to invoke the private controller with a Google-signed ID token;
-- Memory Bank receives reviewed post-release facts only; it cannot mutate mission state; and
+- Memory Bank receives reviewed post-release facts only; it cannot mutate mission state;
+- Cloud SQL for PostgreSQL persists deterministic authority plus separately labeled advisory
+  model receipts across revisions and concurrent instances;
+- managed Gemma 4 (`google/gemma-4-26b-a4b-it-maas`) reviews only a sanitized owner-bond packet
+  at the human gate, exposes no tools, and records `release_authority=false`; and
 - Agent Registry, Agent Gateway, Model Armor, and Agent Observability provide discovery,
   policy-enforced routing, inline screening, and end-to-end telemetry.
 
 Local execution remains deterministic and labels all unconnected surfaces honestly. See the
 [per-project Google Cloud setup checklist](../submission/cargo-release/google-cloud-setup-checklist.md)
 and [`deploy/service-inventory.yaml`](deploy/service-inventory.yaml) for the exact service boundary.
-The current SQLite controller is an explicit single-instance judging proof, not a
-production-durability claim.
+SQLite remains an explicit local fixture. The managed controller requires Cloud SQL and fails
+closed when its PostgreSQL configuration is missing.
+
+Enable the deterministic local Gemma fixture with:
+
+```bash
+export CARGO_RELEASE_GEMMA_CRITIC_ENABLED=1
+export CARGO_RELEASE_GEMMA_CRITIC_MODE=FIXTURE
+```
+
+The managed path instead sets `CARGO_RELEASE_MODEL_PROJECT`, uses the exact global Gemma model,
+and relies on the controller's attached Google identity. A degraded model call remains visible but
+never blocks, approves, or advances cargo. The explicit retry endpoint requires
+`confirm_non_authoritative=true`.
 
 ## Local frontend
 
@@ -50,7 +66,7 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:3024`. The default Mission view keeps the business consequence and the only open decision in frame; Evidence, generated Documents, partner Receipts, and hash-linked Activity are progressively disclosed in separate workspaces.
+Open `http://127.0.0.1:3024`. The default Mission view keeps the business consequence and the only open decision in frame; Evidence, generated Documents, partner Receipts, proposal-only AI checks, and hash-linked Activity are progressively disclosed in separate workspaces.
 
 ## Verification
 
@@ -66,7 +82,13 @@ npm run build
 npm run test:e2e
 ```
 
-Current local checkpoint: 21 backend/API/partner tests and two Playwright journeys pass. The browser suite proves the one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine, and architecture truth labels. The backend suite also covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed memory, private-partner selection, and native provenance propagation.
+Current Gemma checkpoint: 32 default backend/API/partner/model tests pass, plus five isolated
+PostgreSQL acceptance tests (`37 passed` total). Four Playwright journeys cover the
+one-start/one-approval release, generated security-pack inspection, prompt-injection quarantine,
+architecture truth labels, and the visible zero-authority Gemma receipt. The backend suite also
+covers the real Pub/Sub envelope, Eventarc idempotency, managed-label fail-closed gates, reviewed
+memory, private-partner selection, native provenance propagation, sanitized critic input,
+degraded-mode continuity, receipt idempotency, and PostgreSQL restart persistence.
 
 ## Truth labels
 
@@ -74,4 +96,5 @@ Current local checkpoint: 21 backend/API/partner tests and two Playwright journe
 - `ADAPTER`: a production-shaped port is present but not connected to a managed service.
 - `NATIVE`: the request traversed a configured Google-managed surface and retained its receipt/trace identifier.
 
-No production deployment, customer outreach, credential use, or external action is authorized by this repository.
+No model receipt authorizes a state transition. Repository defaults disable external model calls
+and real-party actions unless the corresponding managed adapter is explicitly configured.

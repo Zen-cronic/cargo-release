@@ -51,6 +51,12 @@ class RunStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class ModelReceiptStatus(StrEnum):
+    COMPLETED = "COMPLETED"
+    DEGRADED = "DEGRADED"
+    PENDING = "PENDING"
+
+
 class ReceiptKind(StrEnum):
     INSURER_GUARANTEE = "INSURER_GUARANTEE"
     ADJUSTER_REJECTION = "ADJUSTER_REJECTION"
@@ -169,6 +175,22 @@ class NotificationDelivery(BaseModel):
     delivered_at: str
 
 
+class ModelReceipt(BaseModel):
+    id: str
+    mission_id: str
+    kind: str
+    model_id: str
+    location: str
+    request_ref: str
+    input_digest: str
+    output_digest: str
+    status: ModelReceiptStatus
+    truth_mode: TruthMode
+    result: dict[str, Any] = Field(default_factory=dict)
+    release_authority: bool = False
+    created_at: str
+
+
 class MissionSnapshot(BaseModel):
     mission: Mission
     evidence: list[Evidence]
@@ -179,6 +201,7 @@ class MissionSnapshot(BaseModel):
     artifacts: list[MissionArtifact]
     runs: list[MissionRun]
     notifications: list[NotificationDelivery]
+    model_receipts: list[ModelReceipt]
 
 
 class VersionedAction(BaseModel):
@@ -188,6 +211,11 @@ class VersionedAction(BaseModel):
 
 class SyntheticNotificationAction(BaseModel):
     confirm_synthetic: bool = False
+    actor: str = "operator.demo"
+
+
+class NonAuthoritativeModelAction(BaseModel):
+    confirm_non_authoritative: bool = False
     actor: str = "operator.demo"
 
 

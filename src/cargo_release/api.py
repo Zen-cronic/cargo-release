@@ -10,9 +10,15 @@ from fastapi.responses import JSONResponse
 
 from cargo_release.cloud_context import eventarc_truth_mode
 from cargo_release.engine import CargoReleaseEngine, DomainError, IdentityError
+from cargo_release.gemma_critic import (
+    GemmaCriticPort,
+    GemmaCriticService,
+    build_gemma_critic,
+)
 from cargo_release.models import (
     CasualtyEvent,
     MissionSnapshot,
+    NonAuthoritativeModelAction,
     PubSubEnvelope,
     ReceiptEnvelope,
     ReceiptKind,
@@ -37,7 +43,9 @@ from cargo_release.store import MissionNotFound, StoreError, build_mission_store
 
 def create_app(
     database_path: str | None = None,
+    *,
     notification_port: OperatorNotificationPort | None = None,
+    gemma_critic: GemmaCriticPort | None = None,
 ) -> FastAPI:
     store = build_mission_store(database_path)
     engine = CargoReleaseEngine(store)
@@ -45,6 +53,7 @@ def create_app(
     notifications = MissionNotificationService(
         store, notification_port or build_notification_port()
     )
+    critic = GemmaCriticService(store, gemma_critic or build_gemma_critic())
     app = FastAPI(
         title="Cargo Release Mission API",
         version="0.1.0",
@@ -53,6 +62,11 @@ def create_app(
     app.state.engine = engine
     app.state.runtime = runtime
     app.state.notifications = notifications
+    app.state.gemma_critic = critic
+
+    def postprocess(snapshot: MissionSnapshot) -> MissionSnapshot:
+        reviewed = critic.maybe_review_gate(snapshot.mission.id)
+        return notifications.maybe_deliver_release(reviewed.mission.id)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3024", "http://localhost:3024"],
@@ -118,7 +132,9 @@ def create_app(
                 "declared_container": event.container_ref,
             },
         )
-        return runtime.run(mission_id) if created else snapshot
+        if not created:
+            return snapshot
+        return postprocess(runtime.run(mission_id))
 
     @app.get("/v1/missions/{mission_id}", response_model=MissionSnapshot)
     def get_mission(mission_id: str) -> MissionSnapshot:
@@ -126,12 +142,26 @@ def create_app(
 
     @app.post("/v1/missions/{mission_id}:analyze", response_model=MissionSnapshot)
     def analyze(mission_id: str, action: VersionedAction) -> MissionSnapshot:
-        return engine.analyze_evidence(mission_id, action)
+        snapshot = engine.analyze_evidence(mission_id, action)
+        return postprocess(snapshot)
 
     @app.post("/v1/missions/{mission_id}:run", response_model=MissionSnapshot)
     def run_mission(mission_id: str) -> MissionSnapshot:
         snapshot = runtime.run(mission_id)
-        return notifications.maybe_deliver_release(snapshot.mission.id)
+        return postprocess(snapshot)
+
+    @app.post(
+        "/v1/missions/{mission_id}/models/gemma-critic:retry",
+        response_model=MissionSnapshot,
+    )
+    def retry_gemma_critic(
+        mission_id: str, action: NonAuthoritativeModelAction
+    ) -> MissionSnapshot:
+        if not action.confirm_non_authoritative:
+            raise DomainError(
+                "confirm_non_authoritative=true is required; model output cannot authorize cargo"
+            )
+        return critic.maybe_review_gate(mission_id, retry=True, actor=action.actor)
 
     @app.post("/v1/missions/{mission_id}/approvals/owner-bond", response_model=MissionSnapshot)
     def approve(mission_id: str, action: VersionedAction) -> MissionSnapshot:
@@ -144,7 +174,7 @@ def create_app(
     def approve_and_resume(mission_id: str, action: VersionedAction) -> MissionSnapshot:
         engine.approve_owner_bond(mission_id, action)
         snapshot = runtime.run(mission_id)
-        return notifications.maybe_deliver_release(snapshot.mission.id)
+        return postprocess(snapshot)
 
     @app.post("/v1/missions/{mission_id}/notifications/release")
     def notify_release(mission_id: str, action: SyntheticNotificationAction) -> dict[str, object]:

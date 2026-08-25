@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'bash -lc \'export VIRTUAL_ENV=/home/zin-kg/.pyenv/versions/.cargo-release; export PATH="$VIRTUAL_ENV/bin:$PATH"; CARGO_RELEASE_DB=/tmp/cargo-release-e2e.db poetry run uvicorn cargo_release.api:app --host 127.0.0.1 --port 8095\'',
+        'bash -lc \'export VIRTUAL_ENV=/home/zin-kg/.pyenv/versions/.cargo-release; export PATH="$VIRTUAL_ENV/bin:$PATH"; CARGO_RELEASE_DB=/tmp/cargo-release-e2e.db CARGO_RELEASE_GEMMA_CRITIC_ENABLED=1 CARGO_RELEASE_GEMMA_CRITIC_MODE=FIXTURE poetry run uvicorn cargo_release.api:app --host 127.0.0.1 --port 8095\'',
       cwd: "..",
       url: "http://127.0.0.1:8095/healthz",
       reuseExistingServer: true,

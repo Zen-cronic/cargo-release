@@ -25,6 +25,8 @@ from cargo_release.models import (
     MissionEvent,
     MissionRun,
     MissionSnapshot,
+    ModelReceipt,
+    ModelReceiptStatus,
     NotificationDelivery,
     PartnerReceipt,
     ReceiptKind,
@@ -194,6 +196,22 @@ class SQLiteMissionStore:
                     delivered_at TEXT NOT NULL,
                     UNIQUE(mission_id, kind)
                 );
+                CREATE TABLE IF NOT EXISTS model_receipts (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES missions(id),
+                    kind TEXT NOT NULL,
+                    model_id TEXT NOT NULL,
+                    location TEXT NOT NULL,
+                    request_ref TEXT NOT NULL,
+                    input_digest TEXT NOT NULL,
+                    output_digest TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    truth_mode TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    release_authority INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(mission_id, kind, request_ref)
+                );
                 CREATE TABLE IF NOT EXISTS mission_leases (
                     mission_id TEXT PRIMARY KEY REFERENCES missions(id),
                     owner TEXT NOT NULL,
@@ -201,6 +219,8 @@ class SQLiteMissionStore:
                 );
                 CREATE INDEX IF NOT EXISTS notifications_mission_idx
                     ON notification_deliveries(mission_id);
+                CREATE INDEX IF NOT EXISTS model_receipts_mission_idx
+                    ON model_receipts(mission_id);
                 """
             )
             notification_columns = {
@@ -712,6 +732,66 @@ class SQLiteMissionStore:
                 )
         return self.snapshot(mission_id), created
 
+    def record_model_receipt(
+        self,
+        mission_id: str,
+        *,
+        kind: str,
+        model_id: str,
+        location: str,
+        request_ref: str,
+        input_digest: str,
+        output_digest: str,
+        status: ModelReceiptStatus,
+        truth_mode: TruthMode,
+        result: dict[str, Any],
+        actor: str,
+    ) -> tuple[MissionSnapshot, bool]:
+        receipt_id = f"model-receipt-{uuid4().hex[:12]}"
+        created_at = utc_now()
+        result_json = json.dumps(result, sort_keys=True, separators=(",", ":"))
+        with self._transaction() as connection:
+            inserted = connection.execute(
+                """INSERT INTO model_receipts
+                   (id, mission_id, kind, model_id, location, request_ref, input_digest,
+                    output_digest, status, truth_mode, result_json, release_authority, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(mission_id, kind, request_ref) DO NOTHING""",
+                (
+                    receipt_id,
+                    mission_id,
+                    kind,
+                    model_id,
+                    location,
+                    request_ref,
+                    input_digest,
+                    output_digest,
+                    status,
+                    truth_mode,
+                    result_json,
+                    False,
+                    created_at,
+                ),
+            )
+            created = inserted.rowcount == 1
+            if created:
+                self._append_event(
+                    connection,
+                    mission_id,
+                    "ADVISORY_MODEL_" + status,
+                    actor,
+                    {
+                        "kind": kind,
+                        "model_id": model_id,
+                        "location": location,
+                        "request_ref": request_ref,
+                        "input_digest": input_digest,
+                        "output_digest": output_digest,
+                        "release_authority": False,
+                    },
+                )
+        return self.snapshot(mission_id), created
+
     def snapshot(self, mission_id: str) -> MissionSnapshot:
         with self._connect() as connection:
             mission_row = connection.execute(
@@ -748,6 +828,11 @@ class SQLiteMissionStore:
             notification_rows = connection.execute(
                 """SELECT * FROM notification_deliveries WHERE mission_id = ?
                    ORDER BY delivered_at, id""",
+                (mission_id,),
+            ).fetchall()
+            model_receipt_rows = connection.execute(
+                """SELECT * FROM model_receipts WHERE mission_id = ?
+                   ORDER BY created_at, id""",
                 (mission_id,),
             ).fetchall()
 
@@ -787,6 +872,16 @@ class SQLiteMissionStore:
             ],
             runs=[MissionRun(**dict(row)) for row in run_rows],
             notifications=[NotificationDelivery(**dict(row)) for row in notification_rows],
+            model_receipts=[
+                ModelReceipt(
+                    **{
+                        **dict(row),
+                        "result": json.loads(row["result_json"]),
+                        "release_authority": bool(row["release_authority"]),
+                    }
+                )
+                for row in model_receipt_rows
+            ],
         )
 
 
@@ -984,6 +1079,24 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
             """ALTER TABLE notification_deliveries
                ADD COLUMN IF NOT EXISTS truth_mode TEXT NOT NULL DEFAULT 'ADAPTER'""",
             """
+            CREATE TABLE IF NOT EXISTS model_receipts (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL REFERENCES missions(id),
+                kind TEXT NOT NULL,
+                model_id TEXT NOT NULL,
+                location TEXT NOT NULL,
+                request_ref TEXT NOT NULL,
+                input_digest TEXT NOT NULL,
+                output_digest TEXT NOT NULL,
+                status TEXT NOT NULL,
+                truth_mode TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                release_authority BOOLEAN NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(mission_id, kind, request_ref)
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS mission_leases (
                 mission_id TEXT PRIMARY KEY REFERENCES missions(id),
                 owner TEXT NOT NULL,
@@ -999,6 +1112,7 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
             "CREATE INDEX IF NOT EXISTS runs_mission_idx ON mission_runs(mission_id)",
             """CREATE INDEX IF NOT EXISTS notifications_mission_idx
                ON notification_deliveries(mission_id)""",
+            "CREATE INDEX IF NOT EXISTS model_receipts_mission_idx ON model_receipts(mission_id)",
         )
         with self._connect() as connection:
             for statement in statements:

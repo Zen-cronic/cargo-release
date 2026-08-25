@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from cargo_release.engine import CargoReleaseEngine
+from cargo_release.gemma_critic import FixtureGemmaCritic, GemmaCriticService
 from cargo_release.models import VersionedAction
 from cargo_release.partners import issue_insurer_guarantee
 from cargo_release.store import PostgreSQLMissionStore
@@ -118,3 +119,26 @@ def test_postgres_duplicate_receipt_mutates_once_under_concurrency() -> None:
         event for event in stored.events if event.event_type == "RECEIPT_INSURER_GUARANTEE"
     ]
     assert len(receipt_events) == 1
+
+
+def test_postgres_gemma_receipt_survives_restart_without_state_mutation() -> None:
+    current_mission_id = mission_id("gemma-receipt")
+    store = new_store()
+    snapshot, _ = store.create_or_load_demo_mission(current_mission_id)
+    snapshot = CargoReleaseEngine(store).analyze_evidence(
+        current_mission_id,
+        VersionedAction(expected_version=snapshot.mission.version, actor="gemma-proof"),
+    )
+    authority_version = snapshot.mission.version
+
+    reviewed = GemmaCriticService(store, FixtureGemmaCritic()).maybe_review_gate(
+        current_mission_id
+    )
+    restarted = new_store().snapshot(current_mission_id)
+
+    assert reviewed.mission.version == authority_version
+    assert restarted.mission.release_state == "READY_FOR_SIGNATURE"
+    assert restarted.mission.version == authority_version
+    assert len(restarted.model_receipts) == 1
+    assert restarted.model_receipts[0].release_authority is False
+    assert restarted.model_receipts[0].status == "COMPLETED"

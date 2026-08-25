@@ -2,7 +2,7 @@
 
 import {
   AlertOctagon, ArrowRight, BadgeCheck, Boxes, Check, ChevronRight, CircleDot,
-  Clock3, FileCheck2, FileWarning, Fingerprint, KeyRound, Layers3, LoaderCircle,
+  BrainCircuit, Clock3, FileCheck2, FileWarning, Fingerprint, KeyRound, Layers3, LoaderCircle,
   LockKeyhole, Network, PackageCheck, RefreshCcw, Route, ScanLine, ShieldCheck,
   Send, Ship, Unplug, UsersRound, X,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/cargo-api";
 
 type Drawer = "architecture" | "fleet" | null;
-type WorkspaceTab = "mission" | "evidence" | "documents" | "receipts" | "activity";
+type WorkspaceTab = "mission" | "evidence" | "documents" | "receipts" | "models" | "activity";
 
 interface NextAction {
   eyebrow: string;
@@ -41,6 +41,7 @@ const fleet = [
   ["Adjuster Liaison", "adjuster-liaison@1.0.0", "Consumes independent review receipts."],
   ["Release Verifier", "carrier-verifier@1.0.0", "Requires order plus carrier read-back."],
   ["Release Notifier", "release-notifier@1.0.0", "Sends marked synthetic operator notices after release."],
+  ["Gemma Critic", "gemma-release-critic@1.0.0", "Reviews proposals; owns no release authority."],
   ["Adjustment Monitor", "adjustment-monitor@1.0.0", "Keeps the long-tail mission open."],
 ];
 
@@ -49,6 +50,7 @@ const tabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "evidence", label: "Evidence" },
   { id: "documents", label: "Documents" },
   { id: "receipts", label: "Receipts" },
+  { id: "models", label: "AI checks" },
   { id: "activity", label: "Activity" },
 ];
 
@@ -148,7 +150,7 @@ export function MissionRoom() {
       {error && <div className="error-banner"><AlertOctagon size={16} /> Action failed closed: {error}</div>}
       <nav className="workspace-tabs" aria-label="Mission workspace">
         <div className="tab-list">{tabs.map((item) => {
-          const count = item.id === "evidence" ? snapshot.evidence.length : item.id === "documents" ? snapshot.artifacts.length : item.id === "receipts" ? snapshot.receipts.length : item.id === "activity" ? snapshot.events.length : null;
+          const count = item.id === "evidence" ? snapshot.evidence.length : item.id === "documents" ? snapshot.artifacts.length : item.id === "receipts" ? snapshot.receipts.length : item.id === "models" ? (snapshot.model_receipts?.length ?? 0) : item.id === "activity" ? snapshot.events.length : null;
           return <button key={item.id} className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => setTab(item.id)}>{item.label}{count !== null && <span>{count}</span>}</button>;
         })}</div>
         <div className={`tab-state ${released ? "released" : "held"}`}>{released ? <PackageCheck size={15} /> : <LockKeyhole size={15} />} Physical release: <strong>{released ? "RELEASED" : "HELD"}</strong></div>
@@ -159,6 +161,7 @@ export function MissionRoom() {
           {tab === "evidence" && <EvidencePanel snapshot={snapshot} selected={selectedEvidence} onSelect={setSelectedEvidenceId} />}
           {tab === "documents" && <DocumentsPanel snapshot={snapshot} selected={selectedArtifact} onSelect={setSelectedArtifactId} />}
           {tab === "receipts" && <ReceiptsPanel snapshot={snapshot} onInspect={setReceipt} />}
+          {tab === "models" && <ModelReviewPanel snapshot={snapshot} />}
           {tab === "activity" && <ActivityPanel snapshot={snapshot} />}
         </section>
         <DecisionRail snapshot={snapshot} nextAction={nextAction} busy={busy} onAdvance={advance} onNavigate={setTab} />
@@ -221,6 +224,47 @@ function ReceiptsPanel({ snapshot, onInspect }: { snapshot: MissionSnapshot; onI
   </div>;
 }
 
+interface CriticFindingView {
+  finding_code: string;
+  severity: string;
+  finding: string;
+  evidence_refs: string[];
+  operator_action: string;
+  uncertainty: string;
+}
+
+function criticFindings(result: Record<string, unknown>): CriticFindingView[] {
+  if (!Array.isArray(result.findings)) return [];
+  return result.findings.flatMap((value) => {
+    if (!value || typeof value !== "object") return [];
+    const item = value as Record<string, unknown>;
+    return [{
+      finding_code: String(item.finding_code ?? "UNSPECIFIED"),
+      severity: String(item.severity ?? "ADVISORY"),
+      finding: String(item.finding ?? "No finding text returned."),
+      evidence_refs: Array.isArray(item.evidence_refs) ? item.evidence_refs.map(String) : [],
+      operator_action: String(item.operator_action ?? "Inspect the source packet."),
+      uncertainty: String(item.uncertainty ?? "Model output requires human review."),
+    }];
+  });
+}
+
+function ModelReviewPanel({ snapshot }: { snapshot: MissionSnapshot }) {
+  const receipt = snapshot.model_receipts?.filter((item) => item.kind === "GEMMA_RELEASE_CRITIC").at(-1);
+  if (!receipt) return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="The Gemma critic runs on the sanitized packet at the owner-attestation gate. Disabled or unavailable model checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed critic receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only review.</p></div></div>;
+  const findings = criticFindings(receipt.result);
+  const summary = String(receipt.result.summary ?? (receipt.status === "DEGRADED" ? "The critic is unavailable; the deterministic workflow is unaffected." : "Review completed."));
+  return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized, immutable release packet. Humans and verified partner receipts remain the only release keys." />
+    <article className={`model-receipt status-${receipt.status.toLowerCase()}`}>
+      <div className="model-receipt-head"><span className="model-icon"><BrainCircuit size={20} /></span><div><small>Google AI model receipt</small><strong>{receipt.model_id}</strong><code>{receipt.location} · {receipt.request_ref}</code></div><TruthBadge mode={receipt.truth_mode} /></div>
+      <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · no tools · no state transition · no partner contact</span></div>
+      <p className="model-summary">{summary}</p>
+      {receipt.status === "DEGRADED" ? <div className="model-degraded"><AlertOctagon size={17} /><div><strong>Advisory unavailable</strong><p>{String(receipt.result.error_type ?? "Managed model error")} · release_affected=false · explicit retry available through the API.</p></div></div> : <div className="critic-findings">{findings.map((finding) => <article key={`${finding.finding_code}-${finding.evidence_refs.join("-")}`}><header><span>{finding.severity}</span><code>{finding.finding_code}</code></header><strong>{finding.finding}</strong><p><b>Operator:</b> {finding.operator_action}</p><p><b>Uncertainty:</b> {finding.uncertainty}</p><small>{finding.evidence_refs.join(" · ") || "packet-level finding"}</small></article>)}</div>}
+      <div className="model-digests"><span>Input <code>sha256:{receipt.input_digest}</code></span><span>Output <code>sha256:{receipt.output_digest}</code></span></div>
+    </article>
+  </div>;
+}
+
 function ActivityPanel({ snapshot }: { snapshot: MissionSnapshot }) {
   const notification = snapshot.notifications?.at(-1);
   return <div className="detail-panel activity-panel"><PanelHeading eyebrow="Hash-linked activity" title="Every change has a cause" detail="The mission is reconstructable from append-only events, actor identities, and trace spans." />
@@ -251,6 +295,7 @@ function DecisionRail({ snapshot, nextAction, busy, onAdvance, onNavigate }: { s
       <button onClick={() => onNavigate("evidence")}><span><Layers3 size={16} /><strong>Evidence</strong></span><small>{snapshot.evidence.length} sources</small><ChevronRight size={15} /></button>
       <button onClick={() => onNavigate("documents")}><span><FileCheck2 size={16} /><strong>Documents</strong></span><small>{snapshot.artifacts.length} versions</small><ChevronRight size={15} /></button>
       <button onClick={() => onNavigate("receipts")}><span><KeyRound size={16} /><strong>Receipts</strong></span><small>{snapshot.receipts.length} verified</small><ChevronRight size={15} /></button>
+      <button onClick={() => onNavigate("models")}><span><BrainCircuit size={16} /><strong>AI checks</strong></span><small>{snapshot.model_receipts?.length ?? 0} advisory</small><ChevronRight size={15} /></button>
       <button onClick={() => onNavigate("activity")}><span><Clock3 size={16} /><strong>Activity</strong></span><small>{snapshot.events.length} events</small><ChevronRight size={15} /></button>
     </div>
   </aside>;
@@ -302,6 +347,7 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Agent Observability", "OpenTelemetry topology, traces, and security spans", "ADAPTER"],
       ["Partner Cloud Run", "Independent insurer, adjuster, and carrier fixtures", "FIXTURE"],
       ["Operator notification", "Allowlisted Slack webhook; marked synthetic and post-release only", snapshot.notifications?.at(-1)?.truth_mode ?? "FIXTURE"],
+      ["Gemma 4 critic", "Sanitized proposal review; durable receipt, no tools or authority", snapshot.model_receipts?.at(-1)?.truth_mode ?? "ADAPTER"],
     ].map(([name, detail, mode], index) => <article key={String(name)}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{name}</strong><p>{detail}</p></div><TruthBadge mode={mode as TruthMode} /></article>)}<div className="architecture-rule"><ShieldCheck size={18} /><p><strong>One authority.</strong> Model output and managed memory never write release state. Deterministic transitions require verified receipts and allowed prior state.</p></div></div>}
   </aside></div>;
 }

@@ -52,7 +52,9 @@ def release_mission(client: ASGITestClient) -> MissionSnapshot:
 
 def test_release_notification_is_post_readback_marked_and_idempotent(tmp_path: Path) -> None:
     port = RecordingNotificationPort()
-    client = ASGITestClient(create_app(str(tmp_path / "notification.db"), port))
+    client = ASGITestClient(
+        create_app(str(tmp_path / "notification.db"), notification_port=port)
+    )
 
     snapshot = release_mission(client)
 
@@ -86,7 +88,7 @@ def test_release_notification_is_post_readback_marked_and_idempotent(tmp_path: P
 
 def test_notification_fails_closed_before_release_or_without_confirmation(tmp_path: Path) -> None:
     port = RecordingNotificationPort()
-    client = ASGITestClient(create_app(str(tmp_path / "guard.db"), port))
+    client = ASGITestClient(create_app(str(tmp_path / "guard.db"), notification_port=port))
     snapshot = client.post("/v1/missions/demo").json()
     path = f"/v1/missions/{snapshot['mission']['id']}/notifications/release"
 
