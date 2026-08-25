@@ -1,6 +1,11 @@
 import { GoogleAuth } from "google-auth-library";
 import type { NextRequest } from "next/server";
 
+import {
+  authorizeRelayRequest,
+  RelayPolicyError,
+} from "@/lib/relay-policy";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -51,17 +56,46 @@ function safeIdentityClaims(authorization: string): { aud?: unknown; email?: unk
 
 async function relay(request: NextRequest, context: RouteContext): Promise<Response> {
   const { path } = await context.params;
-  if (!path.length || path.some((segment) => segment === "." || segment === "..")) {
-    return Response.json({ detail: "Invalid controller path" }, { status: 400 });
+  const controller = controllerUrl();
+  const method = request.method.toUpperCase();
+  const body = method === "GET" || method === "HEAD" ? "" : await request.text();
+  const operatorActor =
+    process.env.CARGO_RELEASE_WEB_OPERATOR_ACTOR ??
+    (isLocal(controller) ? "demo-operator-via:cargo-web.local" : undefined);
+  let decision;
+  try {
+    decision = authorizeRelayRequest({
+      method,
+      path,
+      search: request.nextUrl.search,
+      body,
+      operatorActor,
+    });
+  } catch (error) {
+    if (error instanceof RelayPolicyError) {
+      return Response.json(
+        { detail: error.message, code: error.code },
+        {
+          status: error.status,
+          headers: {
+            "cache-control": "no-store",
+            "x-content-type-options": "nosniff",
+          },
+        },
+      );
+    }
+    throw error;
   }
 
-  const controller = controllerUrl();
-  const target = new URL(path.map(encodeURIComponent).join("/"), `${controller.href.replace(/\/$/, "")}/`);
-  target.search = request.nextUrl.search;
+  const target = new URL(
+    decision.upstreamPath.split("/").map(encodeURIComponent).join("/"),
+    `${controller.href.replace(/\/$/, "")}/`,
+  );
 
   const headers = new Headers();
-  const contentType = request.headers.get("content-type");
-  if (contentType) headers.set("content-type", contentType);
+  if (decision.upstreamBody !== undefined) {
+    headers.set("content-type", "application/json");
+  }
 
   if (!isLocal(controller)) {
     const auth = new GoogleAuth();
@@ -76,6 +110,7 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
     console.info(
       JSON.stringify({
         event: "cargo_release_relay_attempt",
+        action: decision.action,
         target: target.toString(),
         requested_audience: audience,
         token: safeIdentityClaims(authorization),
@@ -83,11 +118,10 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
     );
   }
 
-  const method = request.method.toUpperCase();
   const upstream = await fetch(target, {
     method,
     headers,
-    body: method === "GET" || method === "HEAD" ? undefined : await request.text(),
+    body: decision.upstreamBody,
     cache: "no-store",
     redirect: "manual",
   });
@@ -95,6 +129,7 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
   console.info(
     JSON.stringify({
       event: "cargo_release_relay_response",
+      action: decision.action,
       target: target.toString(),
       status: upstream.status,
       trace: upstream.headers.get("x-cloud-trace-context"),
@@ -105,6 +140,7 @@ async function relay(request: NextRequest, context: RouteContext): Promise<Respo
   const upstreamContentType = upstream.headers.get("content-type");
   if (upstreamContentType) responseHeaders.set("content-type", upstreamContentType);
   responseHeaders.set("cache-control", "no-store");
+  responseHeaders.set("x-content-type-options", "nosniff");
   return new Response(upstream.body, {
     status: upstream.status,
     headers: responseHeaders,

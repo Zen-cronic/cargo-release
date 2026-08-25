@@ -163,14 +163,13 @@ export function postMissionAction(
   missionId: string,
   path: string,
   expectedVersion?: number,
-  actor = "operator.demo",
 ): Promise<MissionSnapshot> {
   return request(`/v1/missions/${missionId}${path}`, {
     method: "POST",
     body:
       expectedVersion === undefined
         ? undefined
-        : JSON.stringify({ expected_version: expectedVersion, actor }),
+        : JSON.stringify({ expected_version: expectedVersion }),
   });
 }
 
@@ -179,7 +178,6 @@ export function generateVeoReplay(missionId: string): Promise<MissionSnapshot> {
     method: "POST",
     body: JSON.stringify({
       confirm_training_only: true,
-      actor: "operator.demo",
     }),
   });
 }

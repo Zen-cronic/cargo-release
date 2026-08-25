@@ -8,8 +8,10 @@
     "start": "next start --hostname 127.0.0.1 --port 3024",
     "check": "tsc --noEmit",
     "smoke:route": "node scripts/smoke.mjs",
+    "smoke:relay": "node scripts/smoke-relay.mjs",
     "capture:visual": "node scripts/capture.mjs",
     "rehearse:production": "node scripts/rehearse-production.mjs",
+    "test:relay": "node --test tests/relay-policy.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

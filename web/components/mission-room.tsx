@@ -72,7 +72,7 @@ function actionFor(snapshot: MissionSnapshot): NextAction | null {
     eyebrow: "Human authority required", title: "Owner bond is ready to attest",
     detail: "Review the generated artifact. Approval resumes the fleet; insurer, adjuster, correction, and carrier work then complete without step-through.",
     button: "Approve bond & resume", tone: "signal",
-    invoke: (current) => postMissionAction(current.mission.id, "/approvals/owner-bond:approve-and-resume", current.mission.version, "cargo-owner.demo"),
+    invoke: (current) => postMissionAction(current.mission.id, "/approvals/owner-bond:approve-and-resume", current.mission.version),
   };
   if (mission.release_state !== "RELEASED") return {
     eyebrow: "Recovery-safe runtime", title: "Resume the bounded mission",
