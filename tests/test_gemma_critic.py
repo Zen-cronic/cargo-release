@@ -45,8 +45,10 @@ def test_gemma_critic_runs_once_at_human_gate_without_state_authority(tmp_path: 
     assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
     assert snapshot["mission"]["version"] == 1
     assert port.calls == 1
-    assert len(snapshot["model_receipts"]) == 1
-    receipt = snapshot["model_receipts"][0]
+    assert len(snapshot["model_receipts"]) == 2
+    receipt = next(
+        item for item in snapshot["model_receipts"] if item["kind"] == "GEMMA_RELEASE_CRITIC"
+    )
     assert receipt["kind"] == "GEMMA_RELEASE_CRITIC"
     assert receipt["status"] == "COMPLETED"
     assert receipt["release_authority"] is False
@@ -65,7 +67,7 @@ def test_gemma_critic_runs_once_at_human_gate_without_state_authority(tmp_path: 
     repeated = client.post(f"/v1/missions/{snapshot['mission']['id']}:run")
     assert repeated.status_code == 200
     assert port.calls == 1
-    assert len(repeated.json()["model_receipts"]) == 1
+    assert len(repeated.json()["model_receipts"]) == 2
 
 
 def test_gemma_failure_is_visible_and_does_not_block_human_gate(tmp_path: Path) -> None:
@@ -77,7 +79,9 @@ def test_gemma_failure_is_visible_and_does_not_block_human_gate(tmp_path: Path) 
 
     assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
     assert snapshot["mission"]["version"] == 1
-    receipt = snapshot["model_receipts"][0]
+    receipt = next(
+        item for item in snapshot["model_receipts"] if item["kind"] == "GEMMA_RELEASE_CRITIC"
+    )
     assert receipt["status"] == "DEGRADED"
     assert receipt["result"] == {
         "error_type": "TimeoutError",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -63,6 +64,28 @@ def test_api_requires_current_version(tmp_path: Path) -> None:
         json={"expected_version": 42, "actor": "stale"},
     )
     assert response.status_code == 409
+
+
+def test_prepared_scan_media_is_digest_bound_and_not_a_public_upload(
+    tmp_path: Path,
+) -> None:
+    client = ASGITestClient(create_app(str(tmp_path / "media.db")))
+    snapshot = client.post("/v1/missions/demo").json()
+    scan = next(
+        item for item in snapshot["evidence"] if item["kind"] == "Adjuster rejection scan"
+    )
+
+    response = client.get(
+        f"/v1/missions/{snapshot['mission']['id']}/evidence/{scan['id']}/media"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert hashlib.sha256(response.content).hexdigest() == scan["media_digest"]
+    missing = client.get(
+        f"/v1/missions/{snapshot['mission']['id']}/evidence/ev-arbitrary/media"
+    )
+    assert missing.status_code == 409
 
 
 def test_api_one_start_and_one_human_gate_complete_release(tmp_path: Path) -> None:

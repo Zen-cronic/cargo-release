@@ -21,6 +21,8 @@ docs/
 docs/*
 !docs/design-brief.md
 !docs/architecture.svg
+!docs/demo-director-runbook.md
+!docs/devpost-submission.md
 BUILD_CHECKPOINT.md
 DESIGN_BRIEF.md
 var/

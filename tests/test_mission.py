@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,11 @@ from cargo_release.models import (
     ReleaseState,
     RunStatus,
     VersionedAction,
+)
+from cargo_release.multimodal import (
+    AdjusterRejectionExtraction,
+    FixtureMultimodalExtractor,
+    MultimodalInvocation,
 )
 from cargo_release.partners import (
     issue_adjuster_review,
@@ -97,6 +104,85 @@ def test_analysis_quarantines_prompt_injection(engine: CargoReleaseEngine) -> No
     assert bond.content["coverage_decision"] == "NOT_MADE"
 
 
+def test_valid_scan_is_extracted_validated_and_bound_to_v2(
+    engine: CargoReleaseEngine,
+) -> None:
+    snapshot = submitted_mission(engine)
+    scan = next(item for item in snapshot.evidence if item.kind == "Adjuster rejection scan")
+    assert scan.modality == "IMAGE"
+    assert scan.status is EvidenceStatus.VERIFIED
+    assert scan.confidence == 0.99
+    assert scan.structured_extraction["missing_field"] == "declaration_reference"
+    extraction_receipt = next(
+        item
+        for item in snapshot.model_receipts
+        if item.kind == "GEMINI_ADJUSTER_REJECTION_EXTRACTION"
+    )
+    assert extraction_receipt.source_artifact_ref.startswith(f"evidence://{scan.id}@")
+    assert extraction_receipt.extraction_schema_version == "adjuster-rejection-v1"
+    assert extraction_receipt.validation_outcome == "ACCEPTED"
+    assert extraction_receipt.release_authority is False
+
+    rejected = issue_adjuster_review(
+        snapshot.mission.id,
+        snapshot.mission.case_ref,
+        declaration_reference_present=False,
+    )
+    snapshot, _ = engine.apply_partner_receipt(rejected, "partner:adjuster")
+    snapshot = engine.correct_security(snapshot.mission.id, action(snapshot))
+    corrected = [item for item in snapshot.artifacts if item.kind == "SECURITY_PACK"][-1]
+    assert corrected.content["declaration_reference"] == "GA/NST/0819"
+    assert corrected.content["correction_evidence_ref"].startswith(f"evidence://{scan.id}@")
+    assert {event.event_type for event in snapshot.events} >= {
+        "MULTIMODAL_EXTRACTION_COMPLETED",
+        "EVIDENCE_QUARANTINED",
+        "SECURITY_PACK_CORRECTED",
+    }
+
+
+class LowConfidenceExtractor(FixtureMultimodalExtractor):
+    def extract(self, media: bytes, source_digest: str) -> MultimodalInvocation:
+        extraction = AdjusterRejectionExtraction(
+            document_type="ADJUSTER_SECURITY_PACK_REJECTION",
+            decision="REJECTED",
+            case_reference="GA/NST/0819",
+            container_ref="TCLU-482019-7",
+            pack_revision=1,
+            checked_defect="DECLARATION_REFERENCE_MISSING",
+            missing_field="declaration_reference",
+            correction_instruction="Review the source scan.",
+            confidence=0.4,
+        )
+        normalized = json.dumps(
+            extraction.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+        )
+        return MultimodalInvocation(
+            request_ref="low-confidence-fixture",
+            input_digest=source_digest,
+            output_digest=hashlib.sha256(normalized.encode()).hexdigest(),
+            extraction=extraction,
+        )
+
+
+def test_low_confidence_visual_evidence_fails_closed(tmp_path: Path) -> None:
+    store = SQLiteMissionStore(str(tmp_path / "low-confidence.db"))
+    engine = CargoReleaseEngine(store, LowConfidenceExtractor())
+    snapshot = engine.create_demo_mission()
+
+    with pytest.raises(DomainError, match="LOW_CONFIDENCE"):
+        engine.analyze_evidence(snapshot.mission.id, action(snapshot))
+
+    failed = store.snapshot(snapshot.mission.id)
+    scan = next(item for item in failed.evidence if item.kind == "Adjuster rejection scan")
+    assert failed.mission.release_state is ReleaseState.EVIDENCE_BLOCKED
+    assert scan.status is EvidenceStatus.NEEDS_REVIEW
+    assert scan.confidence == 0.4
+    assert any(
+        event.event_type == "MULTIMODAL_EXTRACTION_REJECTED" for event in failed.events
+    )
+    assert failed.model_receipts[-1].validation_outcome == "LOW_CONFIDENCE"
+
+
 def test_security_cannot_submit_without_human_approval(engine: CargoReleaseEngine) -> None:
     snapshot = ready_mission(engine)
     guarantee = issue_insurer_guarantee(snapshot.mission.id, snapshot.mission.case_ref)
@@ -169,7 +255,7 @@ def test_bounded_runtime_yields_once_then_completes_release(
     assert len(snapshot.receipts) == 5
     packs = [item for item in snapshot.artifacts if item.kind == "SECURITY_PACK"]
     assert [item.revision for item in packs] == [1, 2]
-    assert packs[-1].content["declaration_reference"] == snapshot.mission.case_ref
+    assert packs[-1].content["declaration_reference"] == "GA/NST/0819"
     memory = engine.store.reviewed_memory(snapshot.mission.id, "verified-release-context-v1")
     assert memory is not None
     assert memory["value"]["adjustment_state"] == "OPEN"

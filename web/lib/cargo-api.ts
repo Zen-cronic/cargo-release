@@ -28,6 +28,12 @@ export interface Evidence {
   status: "VERIFIED" | "NEEDS_REVIEW" | "QUARANTINED";
   summary: string;
   facts: Record<string, unknown>;
+  modality: "TEXT" | "IMAGE";
+  media_digest: string;
+  sanitized_derivative_ref?: string | null;
+  structured_extraction: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+  confidence?: number | null;
 }
 
 export interface Approval {
@@ -118,6 +124,9 @@ export interface ModelReceipt {
   status: "COMPLETED" | "DEGRADED" | "PENDING";
   truth_mode: TruthMode;
   result: Record<string, unknown>;
+  source_artifact_ref?: string | null;
+  extraction_schema_version?: string | null;
+  validation_outcome?: string | null;
   release_authority: boolean;
   created_at: string;
 }
@@ -184,4 +193,8 @@ export function generateVeoReplay(missionId: string): Promise<MissionSnapshot> {
 
 export function veoReplayMediaUrl(missionId: string): string {
   return `${API_BASE}/v1/missions/${encodeURIComponent(missionId)}/models/veo-replay/media`;
+}
+
+export function evidenceMediaUrl(missionId: string, evidenceId: string): string {
+  return `${API_BASE}/v1/missions/${encodeURIComponent(missionId)}/evidence/${encodeURIComponent(evidenceId)}/media`;
 }

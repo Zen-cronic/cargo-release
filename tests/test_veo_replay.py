@@ -61,7 +61,11 @@ def test_fixture_replay_runs_only_after_release_without_authority(tmp_path: Path
     assert snapshot["mission"]["release_state"] == "RELEASED"
     assert snapshot["mission"]["version"] == release_version
     assert port.calls == 1
-    receipt = snapshot["model_receipts"][0]
+    receipt = next(
+        item
+        for item in snapshot["model_receipts"]
+        if item["kind"] == "VEO_POST_RELEASE_REPLAY"
+    )
     assert receipt["kind"] == "VEO_POST_RELEASE_REPLAY"
     assert receipt["status"] == "COMPLETED"
     assert receipt["release_authority"] is False
@@ -76,7 +80,7 @@ def test_fixture_replay_runs_only_after_release_without_authority(tmp_path: Path
     )
     assert repeated.status_code == 200
     assert port.calls == 1
-    assert len(repeated.json()["model_receipts"]) == 1
+    assert len(repeated.json()["model_receipts"]) == 2
 
 
 def test_replay_requires_confirmation_and_terminal_state(tmp_path: Path) -> None:
@@ -118,7 +122,11 @@ def test_veo_failure_is_visible_and_cannot_change_release(tmp_path: Path) -> Non
 
     assert snapshot["mission"]["release_state"] == "RELEASED"
     assert snapshot["mission"]["version"] == before["mission"]["version"]
-    receipt = snapshot["model_receipts"][0]
+    receipt = next(
+        item
+        for item in snapshot["model_receipts"]
+        if item["kind"] == "VEO_POST_RELEASE_REPLAY"
+    )
     assert receipt["status"] == "DEGRADED"
     assert receipt["result"]["error_type"] == "TimeoutError"
     assert receipt["result"]["release_affected"] is False

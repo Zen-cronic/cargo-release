@@ -7,6 +7,7 @@ export type RelayAction =
   | "health.read"
   | "mission.create-demo"
   | "mission.read"
+  | "evidence.media-read"
   | "mission.run"
   | "mission.owner-attest"
   | "model.replay-generate"
@@ -146,6 +147,14 @@ export function authorizeRelayRequest(input: RelayRequestInput): RelayDecision {
     }
     if (missionIdFromPath(upstreamPath, "/models/veo-replay/media")) {
       return { action: "model.replay-media", upstreamPath };
+    }
+    const evidenceMedia = /^v1\/missions\/(mission-[a-z0-9-]+)\/evidence\/([A-Za-z0-9._:-]+)\/media$/.exec(upstreamPath);
+    if (
+      evidenceMedia &&
+      MISSION_ID.test(evidenceMedia[1]) &&
+      /^ev-adjuster-rejection-scan-[A-Za-z0-9]+$/.test(evidenceMedia[2])
+    ) {
+      return { action: "evidence.media-read", upstreamPath };
     }
     reject(404, "COMMAND_NOT_ALLOWED", "Controller command is not available");
   }

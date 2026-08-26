@@ -19,6 +19,7 @@ from cargo_release.models import (
     Approval,
     ArtifactStatus,
     Evidence,
+    EvidenceModality,
     EvidenceStatus,
     Mission,
     MissionArtifact,
@@ -108,6 +109,12 @@ class SQLiteMissionStore:
                     status TEXT NOT NULL,
                     summary TEXT NOT NULL,
                     facts_json TEXT NOT NULL,
+                    modality TEXT NOT NULL DEFAULT 'TEXT',
+                    media_digest TEXT NOT NULL DEFAULT '',
+                    sanitized_derivative_ref TEXT,
+                    structured_extraction_json TEXT NOT NULL DEFAULT '{}',
+                    provenance_json TEXT NOT NULL DEFAULT '{}',
+                    confidence REAL,
                     created_at TEXT NOT NULL,
                     UNIQUE(mission_id, kind)
                 );
@@ -208,6 +215,9 @@ class SQLiteMissionStore:
                     status TEXT NOT NULL,
                     truth_mode TEXT NOT NULL,
                     result_json TEXT NOT NULL,
+                    source_artifact_ref TEXT,
+                    extraction_schema_version TEXT,
+                    validation_outcome TEXT,
                     release_authority INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
                     UNIQUE(mission_id, kind, request_ref)
@@ -232,6 +242,46 @@ class SQLiteMissionStore:
                     """ALTER TABLE notification_deliveries
                        ADD COLUMN truth_mode TEXT NOT NULL DEFAULT 'ADAPTER'"""
                 )
+            evidence_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(evidence)")
+            }
+            evidence_migrations = {
+                "modality": "ALTER TABLE evidence ADD COLUMN modality TEXT NOT NULL DEFAULT 'TEXT'",
+                "media_digest": (
+                    "ALTER TABLE evidence ADD COLUMN media_digest TEXT NOT NULL DEFAULT ''"
+                ),
+                "sanitized_derivative_ref": (
+                    "ALTER TABLE evidence ADD COLUMN sanitized_derivative_ref TEXT"
+                ),
+                "structured_extraction_json": (
+                    "ALTER TABLE evidence ADD COLUMN structured_extraction_json "
+                    "TEXT NOT NULL DEFAULT '{}'"
+                ),
+                "provenance_json": (
+                    "ALTER TABLE evidence ADD COLUMN provenance_json TEXT NOT NULL DEFAULT '{}'"
+                ),
+                "confidence": "ALTER TABLE evidence ADD COLUMN confidence REAL",
+            }
+            for column, statement in evidence_migrations.items():
+                if column not in evidence_columns:
+                    connection.execute(statement)
+            model_receipt_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(model_receipts)")
+            }
+            model_receipt_migrations = {
+                "source_artifact_ref": (
+                    "ALTER TABLE model_receipts ADD COLUMN source_artifact_ref TEXT"
+                ),
+                "extraction_schema_version": (
+                    "ALTER TABLE model_receipts ADD COLUMN extraction_schema_version TEXT"
+                ),
+                "validation_outcome": (
+                    "ALTER TABLE model_receipts ADD COLUMN validation_outcome TEXT"
+                ),
+            }
+            for column, statement in model_receipt_migrations.items():
+                if column not in model_receipt_columns:
+                    connection.execute(statement)
 
     def acquire_lease(self, mission_id: str, owner: str, ttl_seconds: int = 30) -> bool:
         now = time.time()
@@ -472,6 +522,15 @@ class SQLiteMissionStore:
                     "source": "synthetic inbound email",
                 },
             ),
+            (
+                "adjuster-rejection-scan",
+                "Adjuster rejection scan",
+                "adjuster-rejection-scan.png",
+                EvidenceStatus.NEEDS_REVIEW,
+                "Prepared synthetic scan awaits multimodal extraction and "
+                "deterministic validation.",
+                {},
+            ),
         ]
         created = False
         with self._transaction() as connection:
@@ -494,16 +553,34 @@ class SQLiteMissionStore:
             created = result.rowcount == 1
             if created:
                 for slug, kind, filename, status, summary, facts in evidence:
-                    content_hash = hashlib.sha256(
-                        json.dumps(facts, sort_keys=True).encode()
-                    ).hexdigest()
+                    evidence_id = f"ev-{slug}-{mission_id[-6:]}"
+                    is_scan = slug == "adjuster-rejection-scan"
+                    if is_scan:
+                        media_path = Path(__file__).with_name("assets") / filename
+                        content_hash = hashlib.sha256(media_path.read_bytes()).hexdigest()
+                    else:
+                        content_hash = hashlib.sha256(
+                            json.dumps(facts, sort_keys=True).encode()
+                        ).hexdigest()
+                    derivative_ref = (
+                        f"/v1/missions/{mission_id}/evidence/{evidence_id}/media"
+                        if is_scan
+                        else None
+                    )
+                    provenance = {
+                        "ingress": "authenticated_mission_intake",
+                        "source": "prepared_synthetic_bundle",
+                        "synthetic": True,
+                        "raw_upload_enabled": False,
+                    }
                     connection.execute(
                         """INSERT INTO evidence
                            (id, mission_id, kind, filename, sha256, status, summary,
-                            facts_json, created_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            facts_json, modality, media_digest, sanitized_derivative_ref,
+                            structured_extraction_json, provenance_json, confidence, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
-                            f"ev-{slug}-{mission_id[-6:]}",
+                            evidence_id,
                             mission_id,
                             kind,
                             filename,
@@ -511,6 +588,12 @@ class SQLiteMissionStore:
                             status,
                             summary,
                             json.dumps(facts, sort_keys=True),
+                            EvidenceModality.IMAGE if is_scan else EvidenceModality.TEXT,
+                            content_hash,
+                            derivative_ref,
+                            "{}",
+                            json.dumps(provenance, sort_keys=True),
+                            None,
                             now,
                         ),
                     )
@@ -608,6 +691,73 @@ class SQLiteMissionStore:
                     json.dumps(detail, sort_keys=True),
                     utc_now(),
                 ),
+            )
+
+    def record_event(
+        self,
+        mission_id: str,
+        event_type: str,
+        actor: str,
+        payload: dict[str, Any],
+    ) -> None:
+        with self._transaction() as connection:
+            mission = connection.execute(
+                "SELECT 1 FROM missions WHERE id = ?", (mission_id,)
+            ).fetchone()
+            if mission is None:
+                raise MissionNotFound(mission_id)
+            self._append_event(connection, mission_id, event_type, actor, payload)
+
+    def record_evidence_extraction(
+        self,
+        mission_id: str,
+        evidence_id: str,
+        *,
+        extraction: dict[str, Any],
+        confidence: float,
+        status: EvidenceStatus,
+        summary: str,
+        validation_outcome: str,
+        actor: str,
+    ) -> None:
+        extraction_json = json.dumps(extraction, sort_keys=True, separators=(",", ":"))
+        with self._transaction() as connection:
+            row = connection.execute(
+                "SELECT structured_extraction_json FROM evidence "
+                "WHERE id = ? AND mission_id = ?",
+                (evidence_id, mission_id),
+            ).fetchone()
+            if row is None:
+                raise StoreError(f"Unknown mission evidence: {evidence_id}")
+            connection.execute(
+                """UPDATE evidence SET structured_extraction_json = ?, confidence = ?,
+                   status = ?, summary = ? WHERE id = ? AND mission_id = ?""",
+                (
+                    extraction_json,
+                    confidence,
+                    status,
+                    summary,
+                    evidence_id,
+                    mission_id,
+                ),
+            )
+            event_type = (
+                "MULTIMODAL_EXTRACTION_COMPLETED"
+                if validation_outcome == "ACCEPTED"
+                else "MULTIMODAL_EXTRACTION_REJECTED"
+            )
+            self._append_event(
+                connection,
+                mission_id,
+                event_type,
+                actor,
+                {
+                    "evidence_id": evidence_id,
+                    "schema_version": "adjuster-rejection-v1",
+                    "confidence": confidence,
+                    "validation_outcome": validation_outcome,
+                    "release_authority": False,
+                },
             )
 
     def record_receipt(
@@ -746,6 +896,9 @@ class SQLiteMissionStore:
         truth_mode: TruthMode,
         result: dict[str, Any],
         actor: str,
+        source_artifact_ref: str | None = None,
+        extraction_schema_version: str | None = None,
+        validation_outcome: str | None = None,
     ) -> tuple[MissionSnapshot, bool]:
         receipt_id = f"model-receipt-{uuid4().hex[:12]}"
         created_at = utc_now()
@@ -754,8 +907,9 @@ class SQLiteMissionStore:
             inserted = connection.execute(
                 """INSERT INTO model_receipts
                    (id, mission_id, kind, model_id, location, request_ref, input_digest,
-                    output_digest, status, truth_mode, result_json, release_authority, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    output_digest, status, truth_mode, result_json, source_artifact_ref,
+                    extraction_schema_version, validation_outcome, release_authority, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(mission_id, kind, request_ref) DO NOTHING""",
                 (
                     receipt_id,
@@ -769,6 +923,9 @@ class SQLiteMissionStore:
                     status,
                     truth_mode,
                     result_json,
+                    source_artifact_ref,
+                    extraction_schema_version,
+                    validation_outcome,
                     False,
                     created_at,
                 ),
@@ -787,6 +944,9 @@ class SQLiteMissionStore:
                         "request_ref": request_ref,
                         "input_digest": input_digest,
                         "output_digest": output_digest,
+                        "source_artifact_ref": source_artifact_ref,
+                        "extraction_schema_version": extraction_schema_version,
+                        "validation_outcome": validation_outcome,
                         "release_authority": False,
                     },
                 )
@@ -843,6 +1003,10 @@ class SQLiteMissionStore:
                     **{
                         **dict(row),
                         "facts": json.loads(row["facts_json"]),
+                        "structured_extraction": json.loads(
+                            row["structured_extraction_json"]
+                        ),
+                        "provenance": json.loads(row["provenance_json"]),
                     }
                 )
                 for row in evidence_rows
@@ -971,6 +1135,12 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
                 status TEXT NOT NULL,
                 summary TEXT NOT NULL,
                 facts_json TEXT NOT NULL,
+                modality TEXT NOT NULL DEFAULT 'TEXT',
+                media_digest TEXT NOT NULL DEFAULT '',
+                sanitized_derivative_ref TEXT,
+                structured_extraction_json TEXT NOT NULL DEFAULT '{}',
+                provenance_json TEXT NOT NULL DEFAULT '{}',
+                confidence DOUBLE PRECISION,
                 created_at TEXT NOT NULL,
                 UNIQUE(mission_id, kind)
             )
@@ -1091,6 +1261,9 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
                 status TEXT NOT NULL,
                 truth_mode TEXT NOT NULL,
                 result_json TEXT NOT NULL,
+                source_artifact_ref TEXT,
+                extraction_schema_version TEXT,
+                validation_outcome TEXT,
                 release_authority BOOLEAN NOT NULL,
                 created_at TEXT NOT NULL,
                 UNIQUE(mission_id, kind, request_ref)
@@ -1113,6 +1286,17 @@ class PostgreSQLMissionStore(SQLiteMissionStore):
             """CREATE INDEX IF NOT EXISTS notifications_mission_idx
                ON notification_deliveries(mission_id)""",
             "CREATE INDEX IF NOT EXISTS model_receipts_mission_idx ON model_receipts(mission_id)",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS modality TEXT NOT NULL DEFAULT 'TEXT'",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS media_digest TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS sanitized_derivative_ref TEXT",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS structured_extraction_json "
+            "TEXT NOT NULL DEFAULT '{}'",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS provenance_json "
+            "TEXT NOT NULL DEFAULT '{}'",
+            "ALTER TABLE evidence ADD COLUMN IF NOT EXISTS confidence DOUBLE PRECISION",
+            "ALTER TABLE model_receipts ADD COLUMN IF NOT EXISTS source_artifact_ref TEXT",
+            "ALTER TABLE model_receipts ADD COLUMN IF NOT EXISTS extraction_schema_version TEXT",
+            "ALTER TABLE model_receipts ADD COLUMN IF NOT EXISTS validation_outcome TEXT",
         )
         with self._connect() as connection:
             for statement in statements:

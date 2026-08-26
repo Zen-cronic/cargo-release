@@ -29,6 +29,18 @@ await page.getByRole("button", { name: "Mission", exact: true }).click();
 await page.getByRole("heading", { name: "Cargo released" }).waitFor();
 await page.screenshot({ path: `${output}/released.png`, fullPage: true });
 
+await page.getByRole("button", { name: /^Evidence \d+$/ }).click();
+await page.getByRole("button", { name: /Adjuster rejection scan/ }).click();
+await page.getByAltText(/Synthetic scanned adjuster rejection/).waitFor();
+await page.getByText(
+  /Security pack v2 populated declaration_reference = GA\/NST\/0819/,
+).waitFor();
+await page.screenshot({ path: `${output}/multimodal-correction.png`, fullPage: true });
+
+await page.getByRole("button", { name: /Broker email/ }).click();
+await page.getByText("QUARANTINED", { exact: true }).waitFor();
+await page.screenshot({ path: `${output}/quarantined-email.png`, fullPage: true });
+
 await page.getByRole("button", { name: "Authority map", exact: true }).click();
 await page.getByRole("button", { name: "Use light theme" }).click();
 await page.screenshot({ path: `${output}/authority-light.png`, fullPage: true });

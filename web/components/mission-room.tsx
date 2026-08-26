@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
-  createDemoMission, type Evidence, generateVeoReplay, getMission, type MissionArtifact,
+  createDemoMission, type Evidence, evidenceMediaUrl, generateVeoReplay, getMission, type MissionArtifact,
   type MissionSnapshot, postMissionAction, type Receipt, type ReceiptKind, type TruthMode,
   veoReplayMediaUrl,
 } from "@/lib/cargo-api";
@@ -45,6 +45,7 @@ const fleet = [
   { kind: "ADK · READ", name: "Runtime Recovery Worker", version: "runtime_recovery_worker", detail: "Classifies durable state; cannot acquire a lease or resume a run.", fallback: "ADAPTER" },
   { kind: "CONTROL", name: "Deterministic Receipt Saga", version: "security-pack@1.0.0", detail: "Cloud SQL state machine applies allowed transitions and verified partner receipts.", fallback: "FIXTURE" },
   { kind: "CONTROL", name: "Release Notifier", version: "release-notifier@1.0.0", detail: "Sends one marked synthetic notice only after carrier read-back.", fallback: "FIXTURE" },
+  { kind: "MODEL · LOAD-BEARING", name: "Gemini Visual Intake", version: "gemini-multimodal-intake@1.0.0", detail: "Extracts the prepared rejection scan; deterministic validation selects one correction field.", fallback: "FIXTURE" },
   { kind: "MODEL · ADVISORY", name: "Gemma Critic", version: "gemma-release-critic@1.0.0", detail: "Reviews sanitized proposals with release_authority=false.", fallback: "ADAPTER" },
   { kind: "MODEL · ADVISORY", name: "Replay Producer", version: "veo-post-release-replay@1.0.0", detail: "Generates training media only after physical release.", fallback: "ADAPTER" },
   { kind: "CONTROL", name: "Adjustment Monitor", version: "adjustment-monitor@1.0.0", detail: "Persists reviewed context while the long-tail adjustment remains open.", fallback: "ADAPTER" },
@@ -240,6 +241,10 @@ function AuthorityMapPanel({ snapshot }: { snapshot: MissionSnapshot }) {
   const releaseReceipts = verifiedReceiptCount(snapshot, releaseKinds);
   const released = snapshot.mission.release_state === "RELEASED";
   const notified = metric.operatorNotifications === 1;
+  const multimodalReceipt = snapshot.model_receipts?.find(
+    (item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION",
+  );
+  const quarantined = snapshot.evidence.some((item) => item.status === "QUARANTINED");
   const recoveryState: MapState = latestRun?.status === "FAILED"
     ? "blocked"
     : latestRun?.status === "COMPLETED"
@@ -260,7 +265,7 @@ function AuthorityMapPanel({ snapshot }: { snapshot: MissionSnapshot }) {
       <div className="map-lanes">
         <section className="map-lane intake-lane">
           <div className="lane-heading"><span>01</span><div><small>Authenticated intake</small><strong>Open one mission</strong></div></div>
-          <MapNode icon={<Route />} state="complete" kicker="EVENT" title="Pub/Sub → Eventarc" detail={`${snapshot.mission.case_ref} · idempotent casualty envelope`} badge={<TruthBadge mode={snapshot.mission.truth_mode} />} />
+          <MapNode icon={<Route />} state="complete" kicker="EVENT + PREPARED MEDIA" title="Pub/Sub → Eventarc" detail={`${snapshot.mission.case_ref} · casualty + digest-bound scan`} badge={<TruthBadge mode={snapshot.mission.truth_mode} />} />
           <MapNode icon={<ShieldCheck />} state="active" kicker="WEB" title="Server relay" detail="Exact method/path allowlist · server-bound operator" badge={<span className="scope-badge">ALLOWLIST</span>} />
         </section>
 
@@ -268,7 +273,7 @@ function AuthorityMapPanel({ snapshot }: { snapshot: MissionSnapshot }) {
           <div className="lane-heading"><span>02</span><div><small>ADK coordination plane</small><strong>Delegate by tool scope</strong></div></div>
           <MapNode icon={<Network />} state={latestRun ? "active" : "idle"} kicker="GEMINI 3.5+ · ADK" title="Mission Coordinator" detail="Four transfers · one lease-protected POST" badge={<span className="scope-badge advance">POST ×1</span>} />
           <div className="worker-grid">
-            <MapNode compact icon={<Layers3 />} state={mapState(evidenceResolved, snapshot.evidence.length > 0)} kicker="READ ONLY" title="Evidence worker" detail={`${snapshot.evidence.filter((item) => item.status === "VERIFIED").length} verified · ${snapshot.evidence.filter((item) => item.status === "QUARANTINED").length} quarantined`} />
+            <MapNode compact icon={<Layers3 />} state={mapState(evidenceResolved, snapshot.evidence.length > 0)} kicker="READ ONLY" title="Evidence worker" detail={`${snapshot.evidence.filter((item) => item.status === "VERIFIED").length} verified · ${snapshot.evidence.filter((item) => item.status === "QUARANTINED").length} quarantined · ${multimodalReceipt?.validation_outcome === "ACCEPTED" ? "visual accepted" : "visual pending"}`} />
             <MapNode compact icon={<FileCheck2 />} state={mapState(securityReceipts === 3, ownerAttested)} kicker="READ ONLY" title="Security worker" detail={`${ownerAttested ? 1 : 0} human · ${securityReceipts}/3 partner`} />
             <MapNode compact icon={<KeyRound />} state={mapState(releaseReceipts === 3, securityReceipts > 0)} kicker="READ ONLY" title="Authority worker" detail={`${releaseReceipts}/3 release-key receipts`} />
             <MapNode compact icon={<RefreshCcw />} state={recoveryState} kicker="READ ONLY" title="Recovery worker" detail={latestRun ? `${latestRun.status.replace("_", " ")} · ${latestRun.steps} bounded steps` : "No run to classify yet"} />
@@ -288,6 +293,13 @@ function AuthorityMapPanel({ snapshot }: { snapshot: MissionSnapshot }) {
           <MapNode icon={<Send />} state={mapState(notified, released)} kicker="POST-READ-BACK" title="Marked Slack proof" detail={notified ? snapshot.notifications?.at(-1)?.endpoint_label ?? "Operator endpoint" : released ? "Endpoint disabled or delivery not requested" : "Cannot run before release"} />
         </section>
       </div>
+      <section className="trust-plane" aria-label="Cross-cutting trust plane">
+        <div><small>Cross-cutting trust plane</small><strong>Identity · Gateway · Model Armor · Registry · Memory · Observability</strong></div>
+        <span className={multimodalReceipt?.validation_outcome === "ACCEPTED" ? "lit" : ""}><ScanLine size={13} /> Scan {multimodalReceipt?.validation_outcome ?? "PENDING"}</span>
+        <span className={quarantined ? "blocked" : ""}><ShieldCheck size={13} /> Email {quarantined ? "QUARANTINED" : "PENDING"}</span>
+        <span className={snapshot.traces.length ? "lit" : ""}><Fingerprint size={13} /> {snapshot.traces.length} traces</span>
+        <span className={snapshot.receipts.length ? "lit" : ""}><KeyRound size={13} /> {snapshot.receipts.filter((item) => item.verified).length} signed receipts</span>
+      </section>
     </section>
     <section className={`friction-proof ${metric.autonomousActions === 8 ? "complete" : ""}`} data-testid="friction-metric">
       <div className="metric-ratio"><span data-testid="human-attestations">{metric.humanAttestations}</span><ArrowRight size={21} /><strong>{metric.autonomousActions}<small> / 8</small></strong></div>
@@ -306,15 +318,28 @@ function MapNode({ icon, state, kicker, title, detail, badge, compact = false }:
 }
 
 function EvidencePanel({ snapshot, selected, onSelect }: { snapshot: MissionSnapshot; selected?: Evidence; onSelect: (id: string) => void }) {
+  const isMultimodal = selected?.modality === "IMAGE";
+  const correctedPack = snapshot.artifacts
+    .filter((item) => item.kind === "SECURITY_PACK" && item.revision === 2)
+    .at(-1);
   return <div className="detail-panel">
-    <PanelHeading eyebrow="Evidence workspace" title="Trust the file, not the instruction" detail="Every source keeps its lineage. Model-addressed text can be inspected without entering mission memory." />
+    <PanelHeading eyebrow="Evidence workspace" title="Trust the evidence, not the instruction" detail="Valid visual evidence is extracted and deterministically validated. Model-addressed text stays visible without entering trusted state." />
     <div className="evidence-browser">
-      <div className="evidence-index">{snapshot.evidence.map((item) => <button key={item.id} className={selected?.id === item.id ? "active" : ""} onClick={() => onSelect(item.id)}><span className={`evidence-icon status-${item.status.toLowerCase()}`}>{item.status === "VERIFIED" ? <FileCheck2 /> : item.status === "QUARANTINED" ? <ShieldCheck /> : <FileWarning />}</span><span><small>{item.kind}</small><strong>{item.filename}</strong></span><ChevronRight size={15} /></button>)}</div>
-      {selected && <article className={`evidence-detail status-${selected.status.toLowerCase()}`}>
+      <div className="evidence-index">{snapshot.evidence.map((item) => <button key={item.id} className={selected?.id === item.id ? "active" : ""} onClick={() => onSelect(item.id)}><span className={`evidence-icon status-${item.status.toLowerCase()}`}>{item.modality === "IMAGE" ? <ScanLine /> : item.status === "VERIFIED" ? <FileCheck2 /> : item.status === "QUARANTINED" ? <ShieldCheck /> : <FileWarning />}</span><span><small>{item.kind} · {item.modality}</small><strong>{item.filename}</strong></span><ChevronRight size={15} /></button>)}</div>
+      {selected && <article className={`evidence-detail status-${selected.status.toLowerCase()} ${isMultimodal ? "multimodal-detail" : ""}`}>
         <div className="document-kicker"><span>{selected.kind}</span><strong>{selected.status.replace("_", " ")}</strong></div>
         <h2>{selected.filename}</h2><p className="document-summary">{selected.summary}</p>
         {selected.status === "QUARANTINED" && <div className="guard-note"><ScanLine size={18} /><div><strong>Model-addressed text is not a fact</strong><span>This source remains visible to the operator but cannot mutate mission memory or release state.</span></div></div>}
-        <dl className="document-facts"><div><dt>Evidence ID</dt><dd>{selected.id}</dd></div>{Object.entries(selected.facts).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value)}</dd></div>)}</dl>
+        {isMultimodal && <div className="multimodal-proof">
+          <figure><img src={evidenceMediaUrl(snapshot.mission.id, selected.id)} alt="Synthetic scanned adjuster rejection with a red rejected stamp and checked missing declaration reference" /><figcaption>Prepared synthetic scan · authenticated mission intake only</figcaption></figure>
+          <div className="extraction-proof">
+            <div className="extraction-verdict"><BadgeCheck size={18} /><div><small>Deterministic validation</small><strong>{String(selected.facts.validation_outcome ?? "PENDING REVIEW")}</strong></div><span>{selected.confidence ? `${Math.round(selected.confidence * 100)}%` : "—"}</span></div>
+            <dl className="document-facts"><div><dt>Schema</dt><dd>adjuster-rejection-v1</dd></div>{Object.entries(selected.structured_extraction).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value)}</dd></div>)}</dl>
+            <div className={`correction-cause ${correctedPack ? "complete" : ""}`}><ArrowRight size={17} /><div><small>Exact workflow consequence</small><strong>{correctedPack ? `Security pack v2 populated declaration_reference = ${String(correctedPack.content.declaration_reference)}` : "Validated missing_field will select declaration_reference for security pack v2"}</strong>{correctedPack && <code>sha256:{correctedPack.digest.slice(0, 20)}…</code>}</div></div>
+          </div>
+        </div>}
+        {!isMultimodal && <dl className="document-facts"><div><dt>Evidence ID</dt><dd>{selected.id}</dd></div>{Object.entries(selected.facts).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value)}</dd></div>)}</dl>}
+        {isMultimodal && <dl className="evidence-provenance"><div><dt>Evidence ID</dt><dd>{selected.id}</dd></div><div><dt>Trust path</dt><dd>{String(selected.provenance.ingress ?? "prepared intake")}</dd></div><div><dt>Sanitized derivative</dt><dd>{selected.sanitized_derivative_ref ?? "—"}</dd></div></dl>}
         <div className="digest-block"><Fingerprint size={15} /><span>Source digest</span><code>sha256:{selected.sha256}</code></div>
       </article>}
     </div>
@@ -392,14 +417,21 @@ function retrievedCases(result: Record<string, unknown>): RetrievedCaseView[] {
 }
 
 function ModelReviewPanel({ snapshot, busy, onGenerateReplay }: { snapshot: MissionSnapshot; busy: boolean; onGenerateReplay: () => Promise<void> }) {
+  const multimodal = snapshot.model_receipts?.filter((item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION").at(-1);
   const gemma = snapshot.model_receipts?.filter((item) => item.kind === "GEMMA_RELEASE_CRITIC").at(-1);
   const retrieval = snapshot.model_receipts?.filter((item) => item.kind === "GEMINI_EMBEDDING_RETRIEVAL").at(-1);
   const veo = snapshot.model_receipts?.filter((item) => item.kind === "VEO_POST_RELEASE_REPLAY").at(-1);
-  if (!gemma && !retrieval && !veo && snapshot.mission.release_state !== "RELEASED") return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="Optional model checks run only on sanitized packets. Disabled or unavailable checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed advisory receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only checks.</p></div></div>;
+  if (!multimodal && !gemma && !retrieval && !veo && snapshot.mission.release_state !== "RELEASED") return <div className="detail-panel"><PanelHeading eyebrow="Independent model review" title="Advisory checks stay outside authority" detail="Optional model checks run only on sanitized packets. Disabled or unavailable checks never approve, block, or release cargo." /><div className="large-empty"><BrainCircuit size={34} /><h2>No managed advisory receipt yet</h2><p>Start the mission to reconcile evidence and request the proposal-only checks.</p></div></div>;
   const findings = gemma ? criticFindings(gemma.result) : [];
   const summary = gemma ? String(gemma.result.summary ?? (gemma.status === "DEGRADED" ? "The critic is unavailable; the deterministic workflow is unaffected." : "Review completed.")) : "";
   const examples = retrieval ? retrievedCases(retrieval.result) : [];
   return <div className="detail-panel model-review-panel"><PanelHeading eyebrow="Independent model review" title="Second opinion, zero authority" detail="Gemma inspects a sanitized packet. Embedding 2 ranks reviewed examples. Veo can visualize the completed workflow only after release. None owns a release key." />
+    {multimodal && <article className={`model-receipt multimodal-receipt status-${multimodal.status.toLowerCase()}`}>
+      <div className="model-receipt-head"><span className="model-icon"><ScanLine size={20} /></span><div><small>Load-bearing visual extraction receipt</small><strong>{multimodal.model_id}</strong><code>{multimodal.location} · {multimodal.request_ref}</code></div><TruthBadge mode={multimodal.truth_mode} /></div>
+      <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · schema {multimodal.extraction_schema_version ?? "unavailable"} · deterministic validation {multimodal.validation_outcome ?? "pending"}</span></div>
+      <p className="model-summary">The model reads the prepared scan; policy validates its exact case, container, revision, checkbox, confidence, and correction field before trusted state can use it.</p>
+      <div className="model-digests"><span>Source <code>{multimodal.source_artifact_ref ?? "unavailable"}</code></span><span>Input <code>sha256:{multimodal.input_digest}</code></span><span>Output <code>sha256:{multimodal.output_digest}</code></span></div>
+    </article>}
     {gemma && <article className={`model-receipt status-${gemma.status.toLowerCase()}`}>
       <div className="model-receipt-head"><span className="model-icon"><BrainCircuit size={20} /></span><div><small>Proposal checklist receipt</small><strong>{gemma.model_id}</strong><code>{gemma.location} · {gemma.request_ref}</code></div><TruthBadge mode={gemma.truth_mode} /></div>
       <div className="authority-zero"><ShieldCheck size={16} /><span><strong>release_authority=false</strong> · no tools · no state transition · no partner contact</span></div>
@@ -516,6 +548,7 @@ function SideDrawer({ drawer, snapshot, onClose }: { drawer: Exclude<Drawer, nul
       ["Agent Registry", "Managed coordinator and exact partner endpoints are registered", "NATIVE"],
       ["Agent Identity + Gateway", "Fail-closed IAP authorization governs the exact Registry allowlist", "NATIVE"],
       ["Agent Observability", "Mission truth, trace spans, request IDs, and Cloud trace context", observabilityMode],
+      ["Gemini visual intake", "Prepared rejection scan to schema; deterministic validation selects the correction field", snapshot.model_receipts?.find((item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION")?.truth_mode ?? "FIXTURE"],
       ["Partner Cloud Run", "Independent insurer, adjuster, and carrier identities return signed fixtures", partnerMode],
       ["Operator notification", "Allowlisted Slack webhook; marked synthetic and post-release only", snapshot.notifications?.at(-1)?.truth_mode ?? "FIXTURE"],
       ["Gemma 4 critic", "Sanitized proposal review; durable receipt, no tools or authority", snapshot.model_receipts?.find((item) => item.kind === "GEMMA_RELEASE_CRITIC")?.truth_mode ?? "ADAPTER"],

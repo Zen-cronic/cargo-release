@@ -38,6 +38,11 @@ class EvidenceStatus(StrEnum):
     QUARANTINED = "QUARANTINED"
 
 
+class EvidenceModality(StrEnum):
+    TEXT = "TEXT"
+    IMAGE = "IMAGE"
+
+
 class ArtifactStatus(StrEnum):
     DRAFT = "DRAFT"
     APPROVED = "APPROVED"
@@ -87,6 +92,12 @@ class Evidence(BaseModel):
     status: EvidenceStatus
     summary: str
     facts: dict[str, Any] = Field(default_factory=dict)
+    modality: EvidenceModality = EvidenceModality.TEXT
+    media_digest: str = ""
+    sanitized_derivative_ref: str | None = None
+    structured_extraction: dict[str, Any] = Field(default_factory=dict)
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    confidence: float | None = None
     created_at: str
 
 
@@ -187,6 +198,9 @@ class ModelReceipt(BaseModel):
     status: ModelReceiptStatus
     truth_mode: TruthMode
     result: dict[str, Any] = Field(default_factory=dict)
+    source_artifact_ref: str | None = None
+    extraction_schema_version: str | None = None
+    validation_outcome: str | None = None
     release_authority: bool = False
     created_at: str
 

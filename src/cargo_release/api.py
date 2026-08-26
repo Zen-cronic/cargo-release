@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -161,6 +162,24 @@ def create_app(
     @app.get("/v1/missions/{mission_id}", response_model=MissionSnapshot)
     def get_mission(mission_id: str) -> MissionSnapshot:
         return store.snapshot(mission_id)
+
+    @app.get("/v1/missions/{mission_id}/evidence/{evidence_id}/media")
+    def get_prepared_evidence_media(mission_id: str, evidence_id: str) -> Response:
+        snapshot = store.snapshot(mission_id)
+        evidence = next((item for item in snapshot.evidence if item.id == evidence_id), None)
+        if evidence is None or evidence.kind != "Adjuster rejection scan":
+            raise DomainError("Prepared mission evidence media is unavailable")
+        media = (Path(__file__).with_name("assets") / evidence.filename).read_bytes()
+        if hashlib.sha256(media).hexdigest() != evidence.media_digest:
+            raise DomainError("Prepared evidence media digest does not match mission intake")
+        return Response(
+            content=media,
+            media_type="image/png",
+            headers={
+                "cache-control": "private, no-store",
+                "content-disposition": f'inline; filename="{evidence.filename}"',
+            },
+        )
 
     @app.post("/v1/missions/{mission_id}:analyze", response_model=MissionSnapshot)
     def analyze(mission_id: str, action: VersionedAction) -> MissionSnapshot:

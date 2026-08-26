@@ -139,6 +139,9 @@ def test_postgres_gemma_receipt_survives_restart_without_state_mutation() -> Non
     assert reviewed.mission.version == authority_version
     assert restarted.mission.release_state == "READY_FOR_SIGNATURE"
     assert restarted.mission.version == authority_version
-    assert len(restarted.model_receipts) == 1
-    assert restarted.model_receipts[0].release_authority is False
-    assert restarted.model_receipts[0].status == "COMPLETED"
+    assert len(restarted.model_receipts) == 2
+    receipt = next(
+        item for item in restarted.model_receipts if item.kind == "GEMMA_RELEASE_CRITIC"
+    )
+    assert receipt.release_authority is False
+    assert receipt.status == "COMPLETED"

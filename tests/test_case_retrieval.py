@@ -48,7 +48,11 @@ def test_case_retrieval_runs_once_without_state_authority(tmp_path: Path) -> Non
     assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
     assert snapshot["mission"]["version"] == 1
     assert port.calls == 1
-    receipt = snapshot["model_receipts"][0]
+    receipt = next(
+        item
+        for item in snapshot["model_receipts"]
+        if item["kind"] == "GEMINI_EMBEDDING_RETRIEVAL"
+    )
     assert receipt["kind"] == "GEMINI_EMBEDDING_RETRIEVAL"
     assert receipt["model_id"] == "gemini-embedding-2"
     assert receipt["status"] == "COMPLETED"
@@ -59,7 +63,7 @@ def test_case_retrieval_runs_once_without_state_authority(tmp_path: Path) -> Non
 
     repeated = client.post(f"/v1/missions/{snapshot['mission']['id']}:run").json()
     assert port.calls == 1
-    assert len(repeated["model_receipts"]) == 1
+    assert len(repeated["model_receipts"]) == 2
 
 
 def test_retrieval_packet_excludes_quarantined_prompt_text(tmp_path: Path) -> None:
@@ -134,7 +138,11 @@ def test_embedding_failure_is_visible_and_does_not_block_human_gate(tmp_path: Pa
 
     assert snapshot["mission"]["release_state"] == "READY_FOR_SIGNATURE"
     assert snapshot["mission"]["version"] == 1
-    receipt = snapshot["model_receipts"][0]
+    receipt = next(
+        item
+        for item in snapshot["model_receipts"]
+        if item["kind"] == "GEMINI_EMBEDDING_RETRIEVAL"
+    )
     assert receipt["status"] == "DEGRADED"
     assert receipt["result"]["error_type"] == "TimeoutError"
     assert receipt["result"]["release_affected"] is False

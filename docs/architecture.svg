@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Cargo Release Google Cloud authority architecture</title>
-  <desc id="desc">Authenticated Eventarc and web relay inputs converge on a deterministic Cloud Run and Cloud SQL receipt saga. A Gemini 3.5 plus ADK coordinator delegates to four read-only scoped workers and owns one bounded resume tool. Human and independently signed partner receipts gate physical release; model outputs and Memory Bank have no release authority.</desc>
+  <desc id="desc">Authenticated Eventarc intake binds a prepared rejection scan and hostile email to one mission. Gemini extracts the visual evidence, deterministic policy validates it, and an ADK coordinator delegates to four read-only workers. Cloud SQL, one human attestation, and independently signed receipts gate physical release; untrusted text is quarantined and model output has no release authority.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#101826"/>
@@ -20,6 +20,9 @@
     <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
       <path d="M0 0 L8 4 L0 8 Z" fill="#55d6a6"/>
     </marker>
+    <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#ff6b6b"/>
+    </marker>
     <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="7" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
@@ -37,6 +40,7 @@
       .nodeBlue { fill: #1b2e50; stroke: #4f8cff; stroke-width: 1.4; }
       .nodeAmber { fill: #342b20; stroke: #f6b84c; stroke-width: 1.4; }
       .nodeGreen { fill: #17342e; stroke: #55d6a6; stroke-width: 1.4; }
+      .nodeRed { fill: #351d24; stroke: #ff6b6b; stroke-width: 1.4; }
       .native { fill: #17342e; stroke: #55d6a6; }
       .adapter { fill: #1b2e50; stroke: #6e9eff; }
       .fixture { fill: #342b20; stroke: #f6b84c; }
@@ -44,6 +48,7 @@
       .readEdge { fill: none; stroke: #4f8cff; stroke-width: 2; stroke-dasharray: 7 7; marker-end: url(#arrowBlue); }
       .advanceEdge { fill: none; stroke: #f6b84c; stroke-width: 2.3; marker-end: url(#arrowAmber); }
       .authorityEdge { fill: none; stroke: #55d6a6; stroke-width: 2.5; marker-end: url(#arrowGreen); }
+      .exceptionEdge { fill: none; stroke: #ff6b6b; stroke-width: 1.8; stroke-dasharray: 5 5; marker-end: url(#arrowRed); }
     </style>
   </defs>
 
@@ -57,7 +62,7 @@
     <text x="58" y="18" class="display" fill="#f4f7fb" font-size="25">CARGO RELEASE</text>
     <text x="58" y="39" class="mono" fill="#6e9eff" font-size="11" letter-spacing="1.5">GOOGLE CLOUD AUTHORITY ARCHITECTURE</text>
   </g>
-  <text x="1550" y="62" text-anchor="end" class="body" fill="#9eabbc" font-size="14">One deterministic writer · four scoped ADK workers · two independent release keys</text>
+  <text x="1550" y="62" text-anchor="end" class="body" fill="#9eabbc" font-size="14">One visual fact changes the workflow · one writer · two independent release keys</text>
   <text x="1550" y="88" text-anchor="end" class="mono" fill="#55d6a6" font-size="11">ALL MODEL AND WORKER OUTPUT: release_authority=false</text>
 
   <!-- Lane headings -->
@@ -88,10 +93,22 @@
   </g>
   <g transform="translate(48 338)">
     <rect class="nodeBlue" width="242" height="104" rx="10"/>
-    <text x="17" y="27" class="mono" fill="#6e9eff" font-size="10">PUBLIC CLOUD RUN · ID TOKEN</text>
-    <text x="17" y="53" class="nodeTitle display">Next.js server relay</text>
-    <text x="17" y="75" class="nodeCopy body">Exact method/path allowlist;</text>
-    <text x="17" y="93" class="nodeCopy body">server-bound operator identity.</text>
+    <text x="17" y="27" class="mono" fill="#6e9eff" font-size="10">PREPARED · DIGEST-BOUND · NO UPLOAD</text>
+    <text x="17" y="53" class="nodeTitle display">Multimodal evidence pair</text>
+    <text x="17" y="75" class="nodeCopy body">Rejection scan → typed extraction</text>
+    <text x="17" y="93" class="nodeCopy body">Hostile email → quarantine</text>
+  </g>
+  <g transform="translate(48 465)">
+    <rect class="nodeBlue" width="242" height="92" rx="10"/>
+    <text x="17" y="25" class="mono" fill="#6e9eff" font-size="10">PUBLIC CLOUD RUN · ID TOKEN</text>
+    <text x="17" y="50" class="nodeTitle display">Next.js server relay</text>
+    <text x="17" y="72" class="nodeCopy body">Exact allowlist · server-bound actor</text>
+  </g>
+  <g transform="translate(48 584)">
+    <rect class="nodeRed" width="242" height="72" rx="10"/>
+    <text x="17" y="25" class="mono" fill="#ff8b8b" font-size="10">EXCEPTION · FAIL CLOSED</text>
+    <text x="17" y="49" class="nodeTitle display">Untrusted text quarantined</text>
+    <text x="17" y="64" class="tiny mono">zero fact · zero memory · zero transition</text>
   </g>
 
   <!-- ADK plane -->
@@ -136,8 +153,8 @@
       <text x="14" y="87" class="nodeCopy body">cannot acquire a lease</text>
       <text x="14" y="103" class="tiny mono">assess_runtime_recovery</text>
     </g>
-    <text x="210" y="405" text-anchor="middle" class="mono" fill="#9eabbc" font-size="10">Agent Identity → fail-closed Gateway → exact Registry allowlist</text>
-    <text x="210" y="426" text-anchor="middle" class="mono" fill="#55d6a6" font-size="10">Structured output · bounded recovery · no peer transfer</text>
+    <text x="210" y="405" text-anchor="middle" class="mono" fill="#9eabbc" font-size="10">Gemini visual extraction → typed schema → policy validation</text>
+    <text x="210" y="426" text-anchor="middle" class="mono" fill="#55d6a6" font-size="10">Identity · Gateway · Registry · bounded recovery · no peer transfer</text>
   </g>
 
   <!-- Authority core -->
@@ -145,8 +162,8 @@
     <rect class="nodeAmber" width="400" height="126" rx="11" filter="url(#softGlow)"/>
     <text x="18" y="28" class="mono" fill="#f6b84c" font-size="10">PRIVATE CLOUD RUN · SOLE WRITER</text>
     <text x="18" y="57" class="nodeTitle display" font-size="20">Deterministic receipt saga</text>
-    <text x="18" y="80" class="nodeCopy body">Allowed prior state + mission version + verified receipt</text>
-    <text x="18" y="101" class="nodeCopy body">decide every transition. Runtime cap: 12 steps.</text>
+    <text x="18" y="80" class="nodeCopy body">Prior state + version + validated evidence + signed receipt</text>
+    <text x="18" y="101" class="nodeCopy body">decide every transition. Rejection selects revision 2.</text>
     <rect x="304" y="18" width="78" height="25" rx="12" class="fixture"/>
     <text x="343" y="35" text-anchor="middle" class="badgeText" fill="#f6b84c">AUTHORITY</text>
   </g>
@@ -210,7 +227,8 @@
 
   <!-- Main edges -->
   <path d="M290 263 C312 263 312 196 334 196 H776 C792 196 790 251 802 257" class="advanceEdge"/>
-  <path d="M290 390 C312 390 312 680 334 680 H776 C794 680 790 304 802 295" class="advanceEdge"/>
+  <path d="M290 511 C312 511 312 680 334 680 H776 C794 680 790 304 802 295" class="advanceEdge"/>
+  <path d="M169 442 V584" class="exceptionEdge"/>
   <path d="M758 272 C775 272 785 272 802 272" class="advanceEdge"/>
   <path d="M758 355 C778 355 782 319 802 319" class="readEdge"/>
   <path d="M1000 337 V359" class="authorityEdge"/>
@@ -218,6 +236,8 @@
   <path d="M1202 571 C1225 571 1225 310 1246 310" class="authorityEdge"/>
   <path d="M1399 373 V398" class="authorityEdge"/>
   <path d="M1246 596 C1225 596 1227 330 1202 330" class="readEdge"/>
+  <path d="M1102 562 C1168 530 1180 356 1138 337" class="exceptionEdge"/>
+  <text x="1162" y="472" class="tiny mono" fill="#ff8b8b" transform="rotate(-73 1162 472)">rejection → corrected revision</text>
 
   <!-- Platform control band -->
   <g transform="translate(48 710)">
@@ -262,6 +282,6 @@
     </g>
   </g>
 
-  <text x="48" y="882" class="mono" fill="#6f7e91" font-size="10">Dashed cobalt = read-only inspection · amber = human or bounded advance · green = verified receipt or committed consequence</text>
+  <text x="48" y="882" class="mono" fill="#6f7e91" font-size="10">Cobalt = read-only inspection · amber = human/bounded advance · green = verified receipt/consequence · red = exception annotation</text>
   <text x="1552" y="882" text-anchor="end" class="mono" fill="#6f7e91" font-size="10">Fictional cargo mission · synthetic partner data · no real cargo action</text>
 </svg>

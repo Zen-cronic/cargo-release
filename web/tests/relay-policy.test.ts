@@ -49,6 +49,18 @@ test("allows only the public read surface", () => {
     authorize("GET", `v1/missions/${missionId}/models/veo-replay/media`).action,
     "model.replay-media",
   );
+  assert.equal(
+    authorize(
+      "GET",
+      `v1/missions/${missionId}/evidence/ev-adjuster-rejection-scan-d197fa/media`,
+    ).action,
+    "evidence.media-read",
+  );
+  rejects(
+    "GET",
+    `v1/missions/${missionId}/evidence/ev-broker-email-d197fa/media`,
+    404,
+  );
 });
 
 test("allows the two demo workflow commands but no arbitrary body", () => {

@@ -21,11 +21,13 @@ real cargo release.
 
 1. Pub/Sub and Eventarc deliver an authenticated casualty CloudEvent. Duplicate delivery converges
    on one Cloud SQL mission.
-2. The bounded controller reconciles four evidence sources, quarantines model-addressed text, and
-   drafts a content-addressed owner bond.
+2. The bounded controller reconciles five evidence sources. Gemini extracts a digest-bound
+   synthetic adjuster scan; deterministic policy validates its case, container, revision,
+   checkbox, confidence, and correction field. Model-addressed email is quarantined.
 3. The workflow stops at its only human gate. The operator attests the synthetic owner bond.
-4. The controller autonomously obtains an insurer guarantee, submits the security pack, preserves
-   an adjuster rejection, corrects the missing declaration reference, and obtains acceptance.
+4. The controller autonomously obtains an insurer guarantee, submits security pack v1, preserves
+   an adjuster rejection, and uses the validated scan's `missing_field` and source reference to
+   produce v2. The model never decides whether that extraction is trusted.
 5. The carrier independently issues a release order and confirms the read-back. Only then does
    physical cargo become `RELEASED`; the General Average adjustment remains `OPEN`.
 6. A marked, idempotent Slack notice is delivered to the operator-owned endpoint after release. It
@@ -69,7 +71,8 @@ run, and one human gate.
 The diagram is intentionally an authority map, not a logo inventory:
 
 - **Authenticated intake:** Pub/Sub → Eventarc and the public Next.js Cloud Run service’s
-  fail-closed relay.
+  fail-closed relay. The only media input is the prepared synthetic scan bound to the mission
+  digest; there is no public upload surface.
 - **ADK coordination plane:** one Gemini 3.5+ coordinator and four separately scoped sub-agents.
 - **Deterministic authority:** a private Cloud Run controller is the sole writer to Cloud SQL for
   PostgreSQL.
@@ -106,6 +109,12 @@ The required coordinator uses `gemini-3.5-flash` through Vertex AI’s `global` 
 governed Agent Runtime remains in `us-central1`. The source fails closed if configured below Gemini
 3.5.
 
+The same Gemini family is load-bearing for visual intake: it extracts a typed
+`adjuster-rejection-v1` record from the prepared PNG. Deterministic validation—not model prose—must
+accept every expected field and confidence ≥ 0.85 before the evidence becomes trusted. A durable
+zero-authority model receipt records the source artifact, schema, validation outcome, digests, and
+request reference. Corrupt, ambiguous, or low-confidence output leaves cargo `EVIDENCE_BLOCKED`.
+
 Three additional Google models are integrated for the event’s optional model bonus:
 
 - **Gemma 4** (`google/gemma-4-26b-a4b-it-maas`) reviews a sanitized owner-bond packet. It has no
@@ -129,6 +138,9 @@ Managed model failure remains visible and never blocks, approves, or advances ca
   and an exact Registry endpoint allowlist.
 - Prompt-injection-shaped evidence remains visible and quarantined. Scoped ADK workers never
   receive its raw text.
+- Valid visual evidence and hostile text take separate paths: the scan survives only after typed
+  extraction plus deterministic validation; the email produces an explicit quarantine event and
+  no fact, memory entry, or state transition.
 - Managed state requires Cloud SQL. SQLite is allowed only as an explicitly labeled local fixture.
 - Every partner receipt is issuer-bound, signed, digest-addressed, idempotent, and valid only from
   an allowed prior state.
@@ -168,7 +180,13 @@ export CARGO_RELEASE_EMBEDDING_RETRIEVAL_ENABLED=1
 export CARGO_RELEASE_EMBEDDING_RETRIEVAL_MODE=FIXTURE
 export CARGO_RELEASE_VEO_REPLAY_ENABLED=1
 export CARGO_RELEASE_VEO_REPLAY_MODE=FIXTURE
+export CARGO_RELEASE_MULTIMODAL_MODE=FIXTURE
 ```
+
+For the managed visual extractor, set `CARGO_RELEASE_MULTIMODAL_MODE=VERTEX` plus the existing
+model project/location configuration. The current repository candidate is locally verified; the
+public URL above still represents the previously promoted managed build until a separately
+approved preview/promotion occurs.
 
 ## Reproducible verification
 
@@ -216,6 +234,7 @@ Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `
 | Durable authority | Cloud SQL PostgreSQL 16 instance `cargo-release-postgres` |
 | Agent runtime | Vertex AI Agent Runtime + Agent Identity + automatic Registry entry |
 | Event intake | Pub/Sub + Eventarc with retained CloudEvent and trace identifiers |
+| Multimodal intake | Candidate pending deploy: prepared PNG → Gemini 3.5 extraction → deterministic validation |
 | Partner boundary | Three private Cloud Run services with separate service accounts |
 | Governance | Agent Gateway, IAP request authorization, Registry, Model Armor |
 | Advisory models | Vertex AI Gemma 4, Gemini Embedding 2, and Veo 3.1 Fast |
