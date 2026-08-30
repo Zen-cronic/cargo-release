@@ -75,7 +75,8 @@ The diagram is intentionally an authority map, not a logo inventory:
   digest; there is no public upload surface.
 - **ADK coordination plane:** one Gemini 3.5+ coordinator and four separately scoped sub-agents.
 - **Deterministic authority:** a private Cloud Run controller is the sole writer to Cloud SQL for
-  PostgreSQL.
+  PostgreSQL. In Cloud Run, the default store selector refuses to initialize unless PostgreSQL is
+  configured, so the automatic SQLite fallback is restricted to non-managed local execution.
 - **Independent keys:** human owner attestation plus HMAC-signed insurer, adjuster, and carrier
   receipts from identity-isolated private Cloud Run fixtures.
 - **Governance:** Agent Identity, Agent Gateway, Registry, Model Armor, Cloud Trace, structured
