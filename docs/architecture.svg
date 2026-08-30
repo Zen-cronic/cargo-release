@@ -197,7 +197,7 @@
   <path d="M390 390 H438" class="advanceEdge"/>
   <path d="M390 548 H438" class="readEdge"/>
   <path d="M870 388 H918" class="advanceEdge"/>
-  <path d="M1360 650 C1390 650 1390 612 1420 612" class="authorityEdge"/>
+  <path d="M1332 675 C1382 675 1408 612 1460 612" class="authorityEdge"/>
 
   <!-- Trust plane -->
   <g filter="url(#shadow)"><rect x="70" y="875" width="1660" height="178" rx="22" fill="#FFFFFF" stroke="#D7DFEA" stroke-width="1.5"/></g>

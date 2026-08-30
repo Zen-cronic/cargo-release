@@ -20,6 +20,15 @@ if (process.env.CARGO_RELEASE_CONTINUOUS_RECORDING_APPROVED !== requiredApproval
 
 const appUrl = (process.env.APP_URL ??
   "https://cargo-release-web-1015646664425.us-central1.run.app").replace(/\/$/, "");
+const demoEdition = process.env.CARGO_RELEASE_DEMO_EDITION ?? "v3";
+const expandedNarrative = demoEdition === "v4";
+const architectureAssetRef = "repository://docs/architecture.svg";
+const architectureSvg = expandedNarrative
+  ? await readFile(path.resolve("../docs/architecture.svg"), "utf8")
+  : null;
+const architectureImageUrl = architectureSvg
+  ? `data:image/svg+xml;base64,${Buffer.from(architectureSvg).toString("base64")}`
+  : null;
 const modelMissionId = process.env.MODEL_MISSION_ID ?? "mission-f92f38ea26c6";
 const slackChannelUrl = process.env.SLACK_CHANNEL_URL ??
   "https://app.slack.com/client/E0BSJNGCZHU/C0BSJNEE1HC";
@@ -179,6 +188,86 @@ async function hideCaption(page) {
   await page.evaluate(() => document.querySelector("#cargo-proof-caption")?.remove());
 }
 
+async function showDomainPrimer(page) {
+  await page.evaluate(() => {
+    document.querySelector("#cargo-domain-primer")?.remove();
+    const primer = document.createElement("section");
+    primer.id = "cargo-domain-primer";
+    primer.innerHTML = `
+      <header><span>GENERAL AVERAGE · THE DOMAIN IN 16 SECONDS</span><h2>Surviving cargo can still be held after a shared maritime casualty.</h2><p>The physical release and the long-tail contribution accounting are separate lifecycles.</p></header>
+      <div class="cargo-domain-steps">
+        <article><b>01</b><small>CASUALTY</small><strong>Shared loss declared</strong><p>Documents arrive from parties with different authority.</p></article>
+        <i>→</i>
+        <article><b>02</b><small>SECURITY</small><strong>Bond + guarantee</strong><p>The cargo owner attests; the insurer independently backs security.</p></article>
+        <i>→</i>
+        <article><b>03</b><small>RELEASE</small><strong>Two verified keys</strong><p>Adjuster acceptance and carrier read-back open the bay.</p></article>
+      </div>`;
+    primer.style.cssText = [
+      "position:fixed", "inset:62px 105px 142px", "z-index:2147483646",
+      "padding:42px 48px", "border:1px solid #a9c2e3", "border-radius:24px",
+      "background:linear-gradient(145deg,rgba(255,255,255,.985),rgba(237,246,255,.985))",
+      "box-shadow:0 28px 90px rgba(31,69,111,.24)", "color:#10243b",
+      "font-family:Arial,sans-serif", "pointer-events:none",
+    ].join(";");
+    const style = document.createElement("style");
+    style.id = "cargo-domain-primer-style";
+    style.textContent = `
+      #cargo-domain-primer header span{color:#1264d7;font:700 15px/1.2 ui-monospace,monospace;letter-spacing:.14em}
+      #cargo-domain-primer h2{max-width:1240px;margin:14px 0 9px;font:750 43px/1.04 Arial,sans-serif;letter-spacing:-.035em}
+      #cargo-domain-primer header p{margin:0;color:#526b84;font:500 20px/1.4 Arial,sans-serif}
+      .cargo-domain-steps{display:grid;grid-template-columns:1fr 48px 1fr 48px 1fr;align-items:stretch;gap:12px;margin-top:36px}
+      .cargo-domain-steps article{min-height:265px;padding:26px;border:1px solid #c5d6e9;border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(42,78,120,.08)}
+      .cargo-domain-steps article b{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#e9f2ff;color:#1264d7;font:700 13px ui-monospace,monospace}
+      .cargo-domain-steps article small{display:block;margin:26px 0 9px;color:#1264d7;font:700 13px ui-monospace,monospace;letter-spacing:.13em}
+      .cargo-domain-steps article strong{display:block;font:720 28px/1.1 Arial,sans-serif;letter-spacing:-.02em}
+      .cargo-domain-steps article p{margin:15px 0 0;color:#566f88;font:500 17px/1.45 Arial,sans-serif}
+      .cargo-domain-steps>i{display:grid;place-items:center;color:#c47a12;font:700 30px Arial,sans-serif;font-style:normal}
+    `;
+    document.head.append(style);
+    document.body.append(primer);
+  });
+}
+
+async function hideDomainPrimer(page) {
+  await page.evaluate(() => {
+    document.querySelector("#cargo-domain-primer")?.remove();
+    document.querySelector("#cargo-domain-primer-style")?.remove();
+  });
+}
+
+async function showArchitectureShell(page) {
+  assert.ok(architectureImageUrl, "Expanded demo requires the tracked architecture SVG");
+  await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f9fc;font-family:Arial,sans-serif}
+    #architecture-stage{position:fixed;inset:0;overflow:hidden;background:radial-gradient(circle at 12% 10%,#eaf1ff,transparent 34%),#f7f9fc}
+    #architecture-image{position:absolute;max-width:none;transition:left .65s ease,top .65s ease,width .65s ease,height .65s ease;filter:drop-shadow(0 18px 34px rgba(32,51,84,.12))}
+    #architecture-source{position:fixed;z-index:3;top:22px;right:28px;padding:9px 13px;border:1px solid #aec5e2;border-radius:999px;background:rgba(255,255,255,.96);color:#326bdb;font:700 12px ui-monospace,monospace;letter-spacing:.08em}
+  </style></head><body><main id="architecture-stage"><img id="architecture-image" alt="Cargo Release authority architecture" src="${architectureImageUrl}"><div id="architecture-source">REPOSITORY ASSET · docs/architecture.svg</div></main></body></html>`, { waitUntil: "load" });
+  await page.locator("#architecture-image").evaluate((image) => {
+    if (!(image instanceof HTMLImageElement) || !image.complete || image.naturalWidth < 1000) {
+      throw new Error("Public architecture SVG did not render");
+    }
+  });
+}
+
+async function setArchitectureView(page, view) {
+  const views = {
+    full: { scale: 0.88, left: 168, top: 10 },
+    readers: { scale: 1.35, left: 305, top: -217 },
+    authority: { scale: 1.35, left: -835, top: -217 },
+    trust: { scale: 0.88, left: 168, top: 10 },
+  };
+  await page.evaluate(({ architectureView }) => {
+    const image = document.querySelector("#architecture-image");
+    const selected = architectureView;
+    image.style.width = `${1800 * selected.scale}px`;
+    image.style.height = `${1200 * selected.scale}px`;
+    image.style.left = `${selected.left}px`;
+    image.style.top = `${selected.top}px`;
+  }, { architectureView: views[view] });
+  await sleep(750);
+}
+
 async function holdBeat(page, name, caption, milliseconds, tone = "blue") {
   await showCaption(page, caption, tone);
   mark(name);
@@ -225,6 +314,19 @@ try {
     4_500,
     "live",
   );
+
+  if (expandedNarrative) {
+    await showDomainPrimer(page);
+    await showCaption(page, "GENERAL AVERAGE · A casualty can end while its financial security and cargo-release work is only beginning", "warning");
+    mark("B1.5 General Average in plain English");
+    await sleep(8_500);
+    await showCaption(page, "Cargo Release coordinates evidence, insurer, adjuster, and carrier—without giving the AI a release key", "blue");
+    mark("B1.6 domain handoffs and product boundary");
+    await sleep(7_500);
+    await hideCaption(page);
+    await hideDomainPrimer(page);
+    await sleep(650);
+  }
 
   await page.getByRole("button", { name: /^Evidence \d+$/ }).click();
   await page.getByRole("button", { name: /Broker email/ }).click();
@@ -353,10 +455,50 @@ try {
     "live",
   );
 
+  if (expandedNarrative) {
+    await showArchitectureShell(page);
+    await setArchitectureView(page, "full");
+    await holdBeat(
+      page,
+      "B14 architecture overview",
+      "FOUR LANES · Authenticated intake → scoped coordination → deterministic authority → physical consequence",
+      6_500,
+      "blue",
+    );
+    await setArchitectureView(page, "readers");
+    await holdBeat(
+      page,
+      "B15 architecture readers and proposal boundary",
+      "READERS · Eventarc opens one mission; Gemini and four scoped ADK workers inspect and propose with release_authority=false",
+      8_500,
+      "blue",
+    );
+    await setArchitectureView(page, "authority");
+    await holdBeat(
+      page,
+      "B16 architecture writer and verified keys",
+      "SOLE WRITER · Cloud Run + Cloud SQL require prior state, one human attestation, and independently signed partner receipts",
+      9_000,
+      "live",
+    );
+    await setArchitectureView(page, "trust");
+    await holdBeat(
+      page,
+      "B17 architecture trust plane",
+      "TRUST PLANE · Identity, Gateway, Model Armor, Registry, Memory, and traces surround every transition",
+      7_500,
+      "blue",
+    );
+    await page.goto(`${appUrl}/?mission=${encodeURIComponent(missionId)}`, {
+      waitUntil: "domcontentloaded", timeout: 45_000,
+    });
+    await page.getByRole("heading", { name: "Cargo released" }).waitFor({ timeout: 45_000 });
+  }
+
   await page.getByRole("button", { name: "Mission", exact: true }).click();
   await holdBeat(
     page,
-    "B14 closing proof",
+    expandedNarrative ? "B18 closing proof" : "B14 closing proof",
     "Cargo Release. Agents coordinate. Humans attest. Independent receipts hold the key.",
     6_000,
   );
@@ -413,6 +555,8 @@ const report = {
   app_url: appUrl,
   slack_channel_url: slackChannelUrl,
   slack_proof_url: slackProofUrl,
+  demo_edition: demoEdition,
+  architecture_asset_ref: expandedNarrative ? architectureAssetRef : null,
   started_at: new Date(startedAt).toISOString(),
   finished_at: new Date().toISOString(),
   viewport,
@@ -450,5 +594,5 @@ await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 if (verificationErrors.length) {
   throw new Error(`V3 continuous proof failed verification: ${verificationErrors.join(" | ")}`);
 }
-console.log(`v3 continuous proof passed: ${finalDuration.toFixed(2)}s, sha256:${sha256}`);
+console.log(`${demoEdition} continuous proof passed: ${finalDuration.toFixed(2)}s, sha256:${sha256}`);
 console.log(finalVideoPath);
