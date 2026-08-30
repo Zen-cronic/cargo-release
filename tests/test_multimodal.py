@@ -73,6 +73,41 @@ def test_vertex_multimodal_sends_digest_bound_png_and_parses_schema() -> None:
     assert base64.b64decode(image["data"]) == media
 
 
+def test_vertex_multimodal_ignores_thought_part_and_parses_final_json() -> None:
+    media = b"synthetic-png-bytes"
+    digest = hashlib.sha256(media).hexdigest()
+
+    def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"thought": True, "text": "internal analysis without JSON"},
+                                {
+                                    "text": json.dumps(
+                                        valid_extraction().model_dump(mode="json")
+                                    )
+                                },
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        invocation = VertexMultimodalExtractor(
+            "ata-2026-cargo",
+            client=client,
+            token_provider=lambda: "ephemeral-test-token",
+        ).extract(media, digest)
+
+    assert invocation.extraction.missing_field == "declaration_reference"
+
+
 def test_visual_digest_and_deterministic_schema_fail_closed() -> None:
     with pytest.raises(MultimodalExtractionError, match="digest"):
         FixtureMultimodalExtractor().extract(b"altered", "0" * 64)
