@@ -11,6 +11,8 @@
     "smoke:relay": "node scripts/smoke-relay.mjs",
     "capture:visual": "node scripts/capture.mjs",
     "record:continuous": "node scripts/record-continuous-demo.mjs",
+    "record:continuous:v3": "node scripts/record-continuous-demo-v3.mjs",
+    "prepare:slack-recording": "node scripts/open-slack-recording-profile.mjs",
     "rehearse:production": "node scripts/rehearse-production.mjs",
     "test:relay": "node --test tests/relay-policy.test.ts",
     "test:metrics": "node --test tests/mission-metrics.test.ts",

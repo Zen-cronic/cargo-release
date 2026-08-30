@@ -24,11 +24,12 @@ const modelMissionId = process.env.MODEL_MISSION_ID ?? "mission-f92f38ea26c6";
 const outputDirectory = path.resolve(
   process.env.RECORDING_OUTPUT ?? "../.playwright-mcp/continuous-demo",
 );
+const recordingStem = process.env.RECORDING_STEM ?? "cargo-release-continuous-proof";
 const repositoryRoot = path.resolve("..");
 const eventTrigger = path.join(repositoryRoot, "scripts", "publish_recording_event.sh");
-const rawVideoPath = path.join(outputDirectory, "cargo-release-continuous-proof.webm");
-const finalVideoPath = path.join(outputDirectory, "cargo-release-continuous-proof.mp4");
-const reportPath = path.join(outputDirectory, "cargo-release-continuous-proof.json");
+const rawVideoPath = path.join(outputDirectory, `${recordingStem}.webm`);
+const finalVideoPath = path.join(outputDirectory, `${recordingStem}.mp4`);
+const reportPath = path.join(outputDirectory, `${recordingStem}.json`);
 const viewport = { width: 1920, height: 1080 };
 
 await mkdir(outputDirectory, { recursive: true });
@@ -85,11 +86,11 @@ async function showCaption(page, text, position = "bottom") {
       "z-index:2147483647",
       "max-width:1180px",
       "padding:14px 22px",
-      "border:1px solid rgba(66,153,255,.72)",
+      "border:1px solid rgba(25,100,220,.42)",
       "border-radius:10px",
-      "background:rgba(2,10,20,.94)",
-      "box-shadow:0 14px 40px rgba(0,0,0,.42)",
-      "color:#f4f8ff",
+      "background:rgba(255,255,255,.96)",
+      "box-shadow:0 14px 38px rgba(38,74,112,.18)",
+      "color:#071d36",
       "font:600 23px/1.35 Arial,sans-serif",
       "letter-spacing:.01em",
       "text-align:center",
@@ -130,7 +131,7 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport,
   deviceScaleFactor: 1,
-  colorScheme: "dark",
+  colorScheme: "light",
   recordVideo: { dir: outputDirectory, size: viewport },
 });
 const page = await context.newPage();
@@ -141,14 +142,14 @@ let recordingError = null;
 try {
   await page.setContent(`<!doctype html>
     <html><head><meta charset="utf-8"><style>
-      *{box-sizing:border-box} body{margin:0;background:#020a14;color:#f5f8ff;font-family:Arial,sans-serif}
+      *{box-sizing:border-box} body{margin:0;background:#edf6ff;color:#071d36;font-family:Arial,sans-serif}
       main{height:1080px;display:grid;place-items:center;padding:100px;background:
-        radial-gradient(circle at 20% 20%,rgba(43,102,246,.25),transparent 34%),#020a14}
-      section{width:1340px;border:1px solid #23415f;border-radius:24px;background:#071523;padding:66px}
-      small{color:#43a5ff;font:700 18px monospace;letter-spacing:.16em} h1{font-size:76px;line-height:1.02;margin:18px 0 24px}
-      p{font-size:27px;line-height:1.5;color:#a8bed2;max-width:1150px}.url{color:#66e5bd;font:22px monospace}
-      pre{margin:30px 0 0;padding:24px;border-radius:12px;background:#020a14;border:1px solid #1e3850;color:#dcecff;font:21px/1.6 monospace;white-space:pre-wrap}
-      .live{display:inline-flex;gap:10px;align-items:center;color:#ffb34b;font:700 18px monospace}.dot{width:11px;height:11px;border-radius:50%;background:#ff7a1a}
+        radial-gradient(circle at 20% 20%,rgba(30,103,235,.15),transparent 34%),linear-gradient(135deg,#f8fbff,#eaf4ff)}
+      section{width:1340px;border:1px solid #9bbfe9;border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 30px 80px rgba(33,79,125,.16);padding:66px}
+      small{color:#0c61d8;font:700 18px monospace;letter-spacing:.16em} h1{font-size:76px;line-height:1.02;margin:18px 0 24px}
+      p{font-size:27px;line-height:1.5;color:#4b647e;max-width:1150px}.url{color:#087b62;font:22px monospace}
+      pre{margin:30px 0 0;padding:24px;border-radius:12px;background:#f2f7fd;border:1px solid #bdd2e9;color:#12314f;font:21px/1.6 monospace;white-space:pre-wrap}
+      .live{display:inline-flex;gap:10px;align-items:center;color:#b86200;font:700 18px monospace}.dot{width:11px;height:11px;border-radius:50%;background:#f37a00}
     </style></head><body><main><section>
       <div class="live"><span class="dot"></span>LIVE CONTINUOUS PLAYWRIGHT CAPTURE · NO CUTS OR SPLICES</div>
       <h1>One casualty event.<br>One human attestation.</h1>
@@ -208,11 +209,26 @@ try {
     "top",
   );
 
+  const visualEvidence = page.locator(".evidence-index button").filter({ hasText: "IMAGE" });
+  assert.equal(await visualEvidence.count(), 1, "Expected exactly one prepared image evidence source");
+  await visualEvidence.click();
+  await page.getByText("Prepared synthetic scan · authenticated mission intake only", { exact: true }).waitFor();
+  await page.getByText("Deterministic validation", { exact: true }).waitFor();
+  await page.getByText("ACCEPTED", { exact: true }).waitFor();
+  await page.getByText("Exact workflow consequence", { exact: true }).waitFor();
+  await holdBeat(
+    page,
+    "B4 prepared scan validated and correction selected",
+    "The prepared scan survives. Its extracted missing field is digest-bound and deterministically validated; this public path truth-labels extraction as FIXTURE.",
+    10_000,
+    "top",
+  );
+
   await page.getByRole("button", { name: /^Documents \d+$/ }).click();
   await page.getByRole("heading", { name: "Cargo owner General Average bond" }).waitFor();
   await holdBeat(
     page,
-    "B4 content-addressed owner bond",
+    "B5 content-addressed owner bond",
     "The system drafted a versioned owner bond from reviewed facts. Artifact creation is not authority.",
     6_500,
     "top",
@@ -225,7 +241,7 @@ try {
     page,
     "ONE SCRIPTED OPERATOR ATTESTATION — the only browser transition. Independent services must still issue every release key.",
   );
-  mark("B5 one operator attestation requested");
+  mark("B6 one operator attestation requested");
   await sleep(4_000);
   await primaryAction.click();
   await showCaption(
@@ -235,7 +251,7 @@ try {
   await page.getByRole("heading", { name: "Cargo released" }).waitFor({ timeout: 120_000 });
   await page.getByText("Carrier read-back verified").waitFor();
   await page.getByText("Marked synthetic notice delivered", { exact: false }).waitFor({ timeout: 45_000 });
-  mark("B6 live saga completed and Slack delivery returned");
+  mark("B7 live saga completed and Slack delivery returned");
   await sleep(5_000);
   await hideCaption(page);
   await sleep(900);
@@ -245,7 +261,7 @@ try {
   await page.getByRole("heading", { name: "Full security submission pack" }).waitFor();
   await holdBeat(
     page,
-    "B7 rejected pack corrected as revision two",
+    "B8 rejected pack corrected as revision two",
     "The adjuster rejected revision one. The failure was recorded; revision two corrected the missing declaration reference and was resubmitted.",
     8_000,
     "top",
@@ -255,7 +271,7 @@ try {
   await page.getByRole("heading", { name: "Receipts unlock cargo" }).waitFor();
   await holdBeat(
     page,
-    "B8 five issuer-bound receipts",
+    "B9 five issuer-bound receipts",
     "Five verified, issuer-bound receipts hold the keys: insurer, adjuster rejection and acceptance, carrier order, and independent read-back.",
     8_000,
     "top",
@@ -264,7 +280,7 @@ try {
   await page.getByRole("dialog", { name: "Carrier read-back" }).waitFor();
   await holdBeat(
     page,
-    "B9 inspected carrier read-back receipt",
+    "B10 inspected carrier read-back receipt",
     "The terminal state depends on this verified carrier read-back—not on model prose.",
     5_500,
     "top",
@@ -276,7 +292,7 @@ try {
   await page.getByTestId("adjustment-state").getByText("OPEN", { exact: true }).waitFor();
   await holdBeat(
     page,
-    "B10 physical release and open adjustment",
+    "B11 physical release and open adjustment",
     "Physical cargo is RELEASED. The General Average adjustment deliberately remains OPEN because those are different lifecycles.",
     7_000,
   );
@@ -286,7 +302,7 @@ try {
   await page.getByText("operator-owned Slack #general", { exact: true }).waitFor();
   await holdBeat(
     page,
-    "B11 marked independently observable consequence",
+    "B12 marked independently observable consequence",
     "Only after carrier read-back, one marked synthetic Slack notice is delivered. It cannot release real cargo and duplicate delivery cannot create another.",
     8_000,
     "top",
@@ -308,7 +324,7 @@ try {
   await page.getByText("veo-3.1-fast-generate-001", { exact: true }).scrollIntoViewIfNeeded();
   await holdBeat(
     page,
-    "B12 three pre-validated zero-authority Google models",
+    "B13 three pre-validated zero-authority Google models",
     "Pre-validated managed receipts: Gemma critiques, Embedding 2 ranks reviewed cases, and Veo creates post-release training media. All three declare release_authority=false.",
     10_000,
     "top",
@@ -327,7 +343,7 @@ try {
   await page.getByText("release_authority=false for every model and worker", { exact: true }).waitFor();
   await holdBeat(
     page,
-    "B13 root plus four scoped ADK workers",
+    "B14 root plus four scoped ADK workers",
     "Gemini 3.5 delegates through ADK to four read-only workers. The live Eventarc path and governed operator plane stay truthfully separate; every worker returns release_authority=false.",
     10_000,
     "top",
@@ -337,7 +353,7 @@ try {
   await page.getByTestId("friction-metric").getByText("8 / 8", { exact: false }).waitFor();
   await holdBeat(
     page,
-    "B14 duplicate-safe friction metric",
+    "B15 duplicate-safe friction metric",
     "Measured capability count: one human attestation produced eight unique downstream actions. Duplicate receipts, events, and notices cannot inflate it.",
     8_000,
     "top",
@@ -350,7 +366,7 @@ try {
   await architecture.getByText("Fail-closed IAP authorization", { exact: false }).waitFor();
   await holdBeat(
     page,
-    "B15 managed architecture boundary",
+    "B16 managed architecture boundary",
     "Agent Gateway constrains the managed route. Cloud SQL is the sole state writer. Model output and managed memory never write release state.",
     8_000,
     "top",
@@ -359,7 +375,7 @@ try {
   await page.getByRole("button", { name: "Mission", exact: true }).click();
   await holdBeat(
     page,
-    "B16 closing proof",
+    "B17 closing proof",
     "Cargo Release: agents do the coordination; humans and independently verified receipts retain authority.",
     7_000,
   );
@@ -372,6 +388,11 @@ try {
   assert.equal(finalSnapshot.receipts.length, 5);
   assert.equal(finalSnapshot.notifications.length, 1);
   assert.equal(finalSnapshot.runs.at(-1)?.status, "COMPLETED");
+  const multimodalReceipt = finalSnapshot.model_receipts?.find(
+    (item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION",
+  );
+  assert.ok(multimodalReceipt, "Prepared scan must produce a multimodal extraction receipt");
+  assert.equal(multimodalReceipt.validation_outcome, "ACCEPTED");
   mark("END — final state assertions passed");
 } catch (error) {
   recordingError = error;
@@ -427,6 +448,16 @@ const report = {
     receipts: finalSnapshot.receipts.length,
     notifications: finalSnapshot.notifications.length,
     latest_run: finalSnapshot.runs.at(-1)?.status,
+    multimodal_extraction: finalSnapshot.model_receipts?.find(
+      (item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION",
+    ) ? {
+      truth_mode: finalSnapshot.model_receipts.find(
+        (item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION",
+      ).truth_mode,
+      validation_outcome: finalSnapshot.model_receipts.find(
+        (item) => item.kind === "GEMINI_ADJUSTER_REJECTION_EXTRACTION",
+      ).validation_outcome,
+    } : null,
   } : null,
   beats,
   browser_errors: browserErrors,
