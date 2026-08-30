@@ -69,12 +69,12 @@
     <g transform="translate(20 20)" color="#17815D"><path class="iconStroke" d="M3 12h22M18 5l7 7-7 7"/></g>
     <text x="58" y="28" class="mono green" font-size="10">NATIVE · EVENT ID + TRACE</text>
     <text x="20" y="64" class="display ink" font-size="20">Pub/Sub → Eventarc</text>
-    <text x="20" y="91" class="body muted" font-size="14">Authenticated CloudEvent</text>
-    <text x="20" y="111" class="body muted" font-size="14">deduplicates to one mission.</text>
+    <text x="20" y="91" class="body muted" font-size="14">Authenticated CloudEvent →</text>
+    <text x="20" y="111" class="body muted" font-size="14">private Cloud Run controller.</text>
   </g>
   <g transform="translate(98 474)">
     <rect width="264" height="168" rx="14" class="nodeBlue"/>
-    <text x="20" y="29" class="mono blue" font-size="10">PREPARED · DIGEST-BOUND</text>
+    <text x="20" y="29" class="mono blue" font-size="10">CLOUD RUN WEB · DIGEST-BOUND</text>
     <text x="20" y="63" class="display ink" font-size="20">Evidence pair</text>
     <g transform="translate(20 83)">
       <rect width="105" height="58" rx="10" fill="#FFFFFF" stroke="#B9CAE6"/>
@@ -105,7 +105,7 @@
   </g>
   <g transform="translate(478 324)">
     <rect width="364" height="112" rx="14" class="nodeBlue"/>
-    <text x="20" y="27" class="mono blue" font-size="10">AGENT RUNTIME · GEMINI 3.5+</text>
+    <text x="20" y="27" class="mono blue" font-size="10">VERTEX AI AGENT RUNTIME · GEMINI 3.5 FLASH</text>
     <text x="20" y="59" class="display ink" font-size="21">Mission Coordinator</text>
     <text x="20" y="84" class="body muted" font-size="14">Four transfers · one bounded resume tool</text>
     <rect x="270" y="19" width="74" height="26" rx="13" fill="#FFF1D5" stroke="#E4B96D"/>
@@ -113,7 +113,7 @@
   </g>
   <g transform="translate(478 460)">
     <rect width="364" height="102" rx="14" class="node"/>
-    <text x="20" y="27" class="mono blue" font-size="10">LOAD-BEARING VISUAL READER</text>
+    <text x="20" y="27" class="mono blue" font-size="10">FIXTURE LIVE · VERTEX AI ADAPTER STAGED</text>
     <text x="20" y="57" class="display ink" font-size="19">Gemini extraction</text>
     <text x="20" y="81" class="body muted" font-size="14">Typed schema → deterministic validation</text>
   </g>
@@ -154,7 +154,7 @@
   </g>
   <g transform="translate(958 616)">
     <rect width="374" height="118" rx="14" class="nodeGreen"/>
-    <text x="20" y="27" class="mono green" font-size="9">KEY 2 · SIGNED PARTNER RECEIPTS</text>
+    <text x="20" y="27" class="mono green" font-size="9">KEY 2 · 3 PRIVATE CLOUD RUN SERVICES</text>
     <text x="20" y="58" class="display ink" font-size="19">Insurer · Adjuster · Carrier</text>
     <text x="20" y="83" class="body muted" font-size="13">Guarantee · reject → accept · order + read-back</text>
     <text x="20" y="103" class="body muted" font-size="13">Identity-bound and replay-safe</text>
@@ -187,9 +187,9 @@
   </g>
   <g transform="translate(1460 678)">
     <rect width="230" height="102" rx="14" class="node"/>
-    <text x="16" y="27" class="mono blue" font-size="9">ONLY AFTER READ-BACK</text>
+    <text x="16" y="27" class="mono blue" font-size="9">SECRET MANAGER → SLACK</text>
     <text x="16" y="54" class="display ink" font-size="17">Marked Slack notice</text>
-    <text x="16" y="76" class="body muted" font-size="12">Veo replay → private GCS</text>
+    <text x="16" y="76" class="body muted" font-size="12">Veo → private Cloud Storage</text>
     <text x="16" y="93" class="body muted" font-size="12">Adjustment remains OPEN</text>
   </g>
 
@@ -206,12 +206,12 @@
     <text y="31" class="display ink" font-size="21">Identity and evidence around every transition</text>
   </g>
   <g transform="translate(560 906)" class="mono" font-size="11">
-    <g><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">IDENTITY</text></g>
-    <g transform="translate(142)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">GATEWAY</text></g>
+    <g><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">AGENT IDENTITY</text></g>
+    <g transform="translate(142)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">AGENT GATEWAY</text></g>
     <g transform="translate(284)"><rect width="142" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="71" y="26" text-anchor="middle" class="blue">MODEL ARMOR</text></g>
-    <g transform="translate(440)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">REGISTRY</text></g>
+    <g transform="translate(440)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">AGENT REGISTRY</text></g>
     <g transform="translate(582)"><rect width="146" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="73" y="26" text-anchor="middle" class="blue">MEMORY BANK</text></g>
-    <g transform="translate(742)"><rect width="150" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="75" y="26" text-anchor="middle" class="blue">TRACE + LOGS</text></g>
+    <g transform="translate(742)"><rect width="150" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="75" y="26" text-anchor="middle" class="blue">LOGGING + TRACE</text></g>
   </g>
   <g transform="translate(560 972)" class="mono" font-size="10">
     <path d="M0 15h65" class="readEdge"/><text x="82" y="19" class="muted">READ-ONLY INSPECTION</text>

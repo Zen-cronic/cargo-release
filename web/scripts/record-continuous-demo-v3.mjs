@@ -21,7 +21,8 @@ if (process.env.CARGO_RELEASE_CONTINUOUS_RECORDING_APPROVED !== requiredApproval
 const appUrl = (process.env.APP_URL ??
   "https://cargo-release-web-1015646664425.us-central1.run.app").replace(/\/$/, "");
 const demoEdition = process.env.CARGO_RELEASE_DEMO_EDITION ?? "v3";
-const expandedNarrative = demoEdition === "v4";
+const expandedNarrative = demoEdition === "v4" || demoEdition === "v5";
+const exactServiceWalkthrough = demoEdition === "v5";
 const architectureAssetRef = "repository://docs/architecture.svg";
 const architectureSvg = expandedNarrative
   ? await readFile(path.resolve("../docs/architecture.svg"), "utf8")
@@ -461,34 +462,52 @@ try {
     await holdBeat(
       page,
       "B14 architecture overview",
-      "FOUR LANES · Authenticated intake → scoped coordination → deterministic authority → physical consequence",
-      6_500,
+      exactServiceWalkthrough
+        ? "01 INTAKE · Pub/Sub → Eventarc → private Cloud Run controller · Next.js relay on a separate public Cloud Run service"
+        : "FOUR LANES · Authenticated intake → scoped coordination → deterministic authority → physical consequence",
+      exactServiceWalkthrough ? 10_000 : 6_500,
       "blue",
     );
     await setArchitectureView(page, "readers");
     await holdBeat(
       page,
       "B15 architecture readers and proposal boundary",
-      "READERS · Eventarc opens one mission; Gemini and four scoped ADK workers inspect and propose with release_authority=false",
-      8_500,
+      exactServiceWalkthrough
+        ? "02 COORDINATION · Vertex AI Agent Runtime hosts Gemini 3.5 Flash + Google ADK · visual extraction is truth-labelled FIXTURE in this take"
+        : "READERS · Eventarc opens one mission; Gemini and four scoped ADK workers inspect and propose with release_authority=false",
+      exactServiceWalkthrough ? 12_000 : 8_500,
       "blue",
     );
     await setArchitectureView(page, "authority");
     await holdBeat(
       page,
       "B16 architecture writer and verified keys",
-      "SOLE WRITER · Cloud Run + Cloud SQL require prior state, one human attestation, and independently signed partner receipts",
-      9_000,
+      exactServiceWalkthrough
+        ? "03 AUTHORITY · private Cloud Run controller → Cloud SQL PostgreSQL 16 · three identity-isolated Cloud Run partners return signed receipts"
+        : "SOLE WRITER · Cloud Run + Cloud SQL require prior state, one human attestation, and independently signed partner receipts",
+      exactServiceWalkthrough ? 12_000 : 9_000,
       "live",
     );
     await setArchitectureView(page, "trust");
     await holdBeat(
       page,
       "B17 architecture trust plane",
-      "TRUST PLANE · Identity, Gateway, Model Armor, Registry, Memory, and traces surround every transition",
-      7_500,
+      exactServiceWalkthrough
+        ? "TRUST · Agent Identity + Gateway + Registry · Model Armor · Memory Bank · Cloud Logging + Cloud Trace · adapters never become authority"
+        : "TRUST PLANE · Identity, Gateway, Model Armor, Registry, Memory, and traces surround every transition",
+      exactServiceWalkthrough ? 11_000 : 7_500,
       "blue",
     );
+    if (exactServiceWalkthrough) {
+      await setArchitectureView(page, "authority");
+      await holdBeat(
+        page,
+        "B18 architecture consequence and notification services",
+        "04 CONSEQUENCE · verified carrier read-back releases cargo · Secret Manager-backed Slack webhook notifies · Veo writes only post-release media to Cloud Storage",
+        11_000,
+        "live",
+      );
+    }
     await page.goto(`${appUrl}/?mission=${encodeURIComponent(missionId)}`, {
       waitUntil: "domcontentloaded", timeout: 45_000,
     });
@@ -498,7 +517,7 @@ try {
   await page.getByRole("button", { name: "Mission", exact: true }).click();
   await holdBeat(
     page,
-    expandedNarrative ? "B18 closing proof" : "B14 closing proof",
+    exactServiceWalkthrough ? "B19 closing proof" : expandedNarrative ? "B18 closing proof" : "B14 closing proof",
     "Cargo Release. Agents coordinate. Humans attest. Independent receipts hold the key.",
     6_000,
   );
