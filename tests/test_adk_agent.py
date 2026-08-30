@@ -40,7 +40,7 @@ def mission_snapshot(
 def test_coordinator_requires_gemini_3_5_or_newer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("CARGO_RELEASE_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("CARGO_RELEASE_MODEL", "gemini-3.1-pro")
     with pytest.raises(RuntimeError, match=r"requires Gemini 3\.5\+"):
         adk_agent._coordinator_model()
 
