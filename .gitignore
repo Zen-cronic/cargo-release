@@ -19,11 +19,7 @@ test-results/
 docs/
 !docs/
 docs/*
-!docs/design-brief.md
 !docs/architecture.svg
-!docs/demo-director-runbook.md
-!docs/devpost-submission.md
-!docs/submission-audit-2026-08-30.md
 BUILD_CHECKPOINT.md
 DESIGN_BRIEF.md
 var/
