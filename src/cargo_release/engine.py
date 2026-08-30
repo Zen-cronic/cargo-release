@@ -93,6 +93,9 @@ class CargoReleaseEngine:
             input_digest = scan.media_digest
             extraction = {
                 "error_type": type(error).__name__,
+                "error_code": str(
+                    getattr(error, "code", "UNCLASSIFIED_MULTIMODAL_ERROR")
+                ),
                 "retryable": True,
                 "release_affected": False,
             }

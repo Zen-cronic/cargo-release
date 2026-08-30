@@ -21,7 +21,9 @@ MIN_EXTRACTION_CONFIDENCE = 0.85
 
 
 class MultimodalExtractionError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, code: str = "MULTIMODAL_EXTRACTION_ERROR") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class AdjusterRejectionExtraction(BaseModel):
@@ -98,10 +100,22 @@ def _json_object(content: str) -> dict[str, Any]:
     start = content.find("{")
     end = content.rfind("}")
     if start < 0 or end <= start:
-        raise MultimodalExtractionError("Gemini extraction returned no JSON object")
-    parsed = json.loads(content[start : end + 1])
+        raise MultimodalExtractionError(
+            "Gemini extraction returned no JSON object",
+            code="NO_JSON_OBJECT",
+        )
+    try:
+        parsed = json.loads(content[start : end + 1])
+    except json.JSONDecodeError as error:
+        raise MultimodalExtractionError(
+            "Gemini extraction returned invalid JSON",
+            code="INVALID_JSON_OBJECT",
+        ) from error
     if not isinstance(parsed, dict):
-        raise MultimodalExtractionError("Gemini extraction result must be a JSON object")
+        raise MultimodalExtractionError(
+            "Gemini extraction result must be a JSON object",
+            code="NON_OBJECT_RESULT",
+        )
     return cast(dict[str, Any], parsed)
 
 
@@ -177,11 +191,26 @@ class VertexMultimodalExtractor:
         payload = cast(dict[str, Any], response.json())
         candidates = payload.get("candidates")
         if not isinstance(candidates, list) or not candidates:
-            raise MultimodalExtractionError("Gemini extraction returned no candidate")
+            prompt_feedback = payload.get("promptFeedback")
+            block_reason = (
+                prompt_feedback.get("blockReason")
+                if isinstance(prompt_feedback, dict)
+                else None
+            )
+            suffix = str(block_reason or "UNKNOWN").upper().replace("-", "_")
+            raise MultimodalExtractionError(
+                "Gemini extraction returned no candidate",
+                code=f"NO_CANDIDATE_{suffix}",
+            )
         content = candidates[0].get("content")
         parts = content.get("parts") if isinstance(content, dict) else None
         if not isinstance(parts, list) or not parts or not isinstance(parts[0].get("text"), str):
-            raise MultimodalExtractionError("Gemini extraction returned no text result")
+            finish_reason = candidates[0].get("finishReason", "UNKNOWN")
+            suffix = str(finish_reason).upper().replace("-", "_")
+            raise MultimodalExtractionError(
+                "Gemini extraction returned no text result",
+                code=f"NO_TEXT_RESULT_{suffix}",
+            )
         extraction = AdjusterRejectionExtraction.model_validate(_json_object(parts[0]["text"]))
         normalized = json.dumps(
             extraction.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
