@@ -119,28 +119,6 @@ def _json_object(content: str) -> dict[str, Any]:
     return cast(dict[str, Any], parsed)
 
 
-def _structured_json_part(parts: list[object]) -> dict[str, Any]:
-    """Select the final non-thought JSON part without retaining reasoning text."""
-
-    saw_non_thought_text = False
-    for part in reversed(parts):
-        if not isinstance(part, dict) or part.get("thought") is True:
-            continue
-        text = part.get("text")
-        if not isinstance(text, str):
-            continue
-        saw_non_thought_text = True
-        try:
-            return _json_object(text)
-        except MultimodalExtractionError as error:
-            if error.code != "NO_JSON_OBJECT":
-                raise
-    raise MultimodalExtractionError(
-        "Gemini extraction returned no structured non-thought result",
-        code="NO_JSON_OBJECT" if saw_non_thought_text else "NO_NON_THOUGHT_TEXT_RESULT",
-    )
-
-
 class VertexMultimodalExtractor:
     truth_mode = TruthMode.NATIVE
 
@@ -226,16 +204,14 @@ class VertexMultimodalExtractor:
             )
         content = candidates[0].get("content")
         parts = content.get("parts") if isinstance(content, dict) else None
-        if not isinstance(parts, list) or not parts:
+        if not isinstance(parts, list) or not parts or not isinstance(parts[0].get("text"), str):
             finish_reason = candidates[0].get("finishReason", "UNKNOWN")
             suffix = str(finish_reason).upper().replace("-", "_")
             raise MultimodalExtractionError(
                 "Gemini extraction returned no text result",
                 code=f"NO_TEXT_RESULT_{suffix}",
             )
-        extraction = AdjusterRejectionExtraction.model_validate(
-            _structured_json_part(cast(list[object], parts))
-        )
+        extraction = AdjusterRejectionExtraction.model_validate(_json_object(parts[0]["text"]))
         normalized = json.dumps(
             extraction.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
         )
