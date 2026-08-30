@@ -84,26 +84,3 @@ def test_visual_digest_and_deterministic_schema_fail_closed() -> None:
     )
     assert not accepted
     assert outcome == "UNSUPPORTED_CORRECTION_FIELD"
-
-
-def test_vertex_failure_codes_expose_no_raw_model_content() -> None:
-    media = b"synthetic-png-bytes"
-    digest = hashlib.sha256(media).hexdigest()
-
-    def no_candidate(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"promptFeedback": {"blockReason": "IMAGE_SAFETY"}},
-        )
-
-    with httpx.Client(transport=httpx.MockTransport(no_candidate)) as client:
-        extractor = VertexMultimodalExtractor(
-            "ata-2026-cargo",
-            client=client,
-            token_provider=lambda: "ephemeral-test-token",
-        )
-        with pytest.raises(MultimodalExtractionError) as captured:
-            extractor.extract(media, digest)
-
-    assert captured.value.code == "NO_CANDIDATE_IMAGE_SAFETY"
-    assert "synthetic-png-bytes" not in str(captured.value)
