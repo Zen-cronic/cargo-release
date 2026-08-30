@@ -1,287 +1,228 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
-  <title id="title">Cargo Release Google Cloud authority architecture</title>
-  <desc id="desc">Authenticated Eventarc intake binds a prepared rejection scan and hostile email to one mission. Gemini extracts the visual evidence, deterministic policy validates it, and an ADK coordinator delegates to four read-only workers. Cloud SQL, one human attestation, and independently signed receipts gate physical release; untrusted text is quarantined and model output has no release authority.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Cargo Release authority architecture</title>
+  <desc id="desc">A light, four-stage architecture diagram. Authenticated event and multimodal evidence enter a scoped Gemini and ADK fleet. A deterministic Cloud Run controller and Cloud SQL require one human attestation plus independently signed partner receipts before physical cargo release. Hostile text is quarantined and an adjuster rejection creates a corrected revision.</desc>
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101826"/>
-      <stop offset="0.55" stop-color="#172337"/>
-      <stop offset="1" stop-color="#0c141f"/>
-    </linearGradient>
-    <linearGradient id="bluePanel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#192d55"/>
-      <stop offset="1" stop-color="#152239"/>
-    </linearGradient>
-    <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 L8 4 L0 8 Z" fill="#4f8cff"/>
-    </marker>
-    <marker id="arrowAmber" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 L8 4 L0 8 Z" fill="#f6b84c"/>
-    </marker>
-    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 L8 4 L0 8 Z" fill="#55d6a6"/>
-    </marker>
-    <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 L8 4 L0 8 Z" fill="#ff6b6b"/>
-    </marker>
-    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="7" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#203354" flood-opacity="0.09"/>
     </filter>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#326BDB"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#C47A12"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#17815D"/>
+    </marker>
+    <marker id="arrowCoral" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#C94D57"/>
+    </marker>
     <style>
-      .display { font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 700; }
+      .display { font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 740; }
       .body { font-family: "Manrope", Arial, sans-serif; }
       .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
-      .kicker { fill: #6e9eff; font-size: 13px; letter-spacing: 2.2px; }
-      .laneTitle { fill: #f4f7fb; font-size: 23px; }
-      .nodeTitle { fill: #f4f7fb; font-size: 17px; }
-      .nodeCopy { fill: #9eabbc; font-size: 12px; }
-      .tiny { fill: #9eabbc; font-size: 10px; }
-      .node { fill: #1b2a3d; stroke: #3a4a5f; stroke-width: 1.2; }
-      .nodeBlue { fill: #1b2e50; stroke: #4f8cff; stroke-width: 1.4; }
-      .nodeAmber { fill: #342b20; stroke: #f6b84c; stroke-width: 1.4; }
-      .nodeGreen { fill: #17342e; stroke: #55d6a6; stroke-width: 1.4; }
-      .nodeRed { fill: #351d24; stroke: #ff6b6b; stroke-width: 1.4; }
-      .native { fill: #17342e; stroke: #55d6a6; }
-      .adapter { fill: #1b2e50; stroke: #6e9eff; }
-      .fixture { fill: #342b20; stroke: #f6b84c; }
-      .badgeText { font-family: "IBM Plex Mono", monospace; font-size: 9px; font-weight: 600; letter-spacing: 1px; }
-      .readEdge { fill: none; stroke: #4f8cff; stroke-width: 2; stroke-dasharray: 7 7; marker-end: url(#arrowBlue); }
-      .advanceEdge { fill: none; stroke: #f6b84c; stroke-width: 2.3; marker-end: url(#arrowAmber); }
-      .authorityEdge { fill: none; stroke: #55d6a6; stroke-width: 2.5; marker-end: url(#arrowGreen); }
-      .exceptionEdge { fill: none; stroke: #ff6b6b; stroke-width: 1.8; stroke-dasharray: 5 5; marker-end: url(#arrowRed); }
+      .ink { fill: #17243A; }
+      .muted { fill: #627087; }
+      .blue { fill: #326BDB; }
+      .amber { fill: #A8620B; }
+      .green { fill: #17815D; }
+      .coral { fill: #B43E49; }
+      .lane { fill: #FFFFFF; stroke: #D7DFEA; stroke-width: 1.5; }
+      .node { fill: #FFFFFF; stroke: #D7DFEA; stroke-width: 1.5; }
+      .nodeBlue { fill: #F1F6FF; stroke: #8EAFE9; stroke-width: 1.5; }
+      .nodeAmber { fill: #FFF8E9; stroke: #E4B96D; stroke-width: 1.5; }
+      .nodeGreen { fill: #EEF9F5; stroke: #8CCBB7; stroke-width: 1.5; }
+      .nodeCoral { fill: #FFF2F3; stroke: #E4A2A7; stroke-width: 1.5; }
+      .readEdge { fill: none; stroke: #326BDB; stroke-width: 3; stroke-dasharray: 9 8; marker-end: url(#arrowBlue); }
+      .advanceEdge { fill: none; stroke: #C47A12; stroke-width: 3.2; marker-end: url(#arrowAmber); }
+      .authorityEdge { fill: none; stroke: #17815D; stroke-width: 3.4; marker-end: url(#arrowGreen); }
+      .exceptionEdge { fill: none; stroke: #C94D57; stroke-width: 2.5; stroke-dasharray: 7 7; marker-end: url(#arrowCoral); }
+      .iconStroke { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
     </style>
   </defs>
 
-  <rect width="1600" height="900" fill="url(#background)"/>
-  <circle cx="640" cy="-90" r="430" fill="#204b91" opacity="0.14"/>
-  <path d="M0 118 H1600" stroke="#304258"/>
+  <rect width="1800" height="1200" fill="#F7F9FC"/>
+  <circle cx="1640" cy="-20" r="360" fill="#EAF1FF"/>
+  <circle cx="90" cy="1120" r="260" fill="#EDF8F4"/>
 
-  <g transform="translate(48 38)">
-    <rect width="42" height="42" rx="8" fill="#336ee8"/>
-    <path d="M11 14h20v14H11zM15 10v22M27 10v22" fill="none" stroke="#fff" stroke-width="2"/>
-    <text x="58" y="18" class="display" fill="#f4f7fb" font-size="25">CARGO RELEASE</text>
-    <text x="58" y="39" class="mono" fill="#6e9eff" font-size="11" letter-spacing="1.5">GOOGLE CLOUD AUTHORITY ARCHITECTURE</text>
+  <!-- Header -->
+  <g transform="translate(70 58)">
+    <rect width="52" height="52" rx="12" fill="#326BDB"/>
+    <path d="M14 18h24v18H14zM20 13v28M32 13v28" fill="none" stroke="#fff" stroke-width="2.4"/>
+    <text x="72" y="24" class="display ink" font-size="31">Cargo Release</text>
+    <text x="72" y="49" class="mono blue" font-size="12" letter-spacing="2">GOOGLE CLOUD AUTHORITY ARCHITECTURE</text>
   </g>
-  <text x="1550" y="62" text-anchor="end" class="body" fill="#9eabbc" font-size="14">One visual fact changes the workflow · one writer · two independent release keys</text>
-  <text x="1550" y="88" text-anchor="end" class="mono" fill="#55d6a6" font-size="11">ALL MODEL AND WORKER OUTPUT: release_authority=false</text>
+  <g transform="translate(880 56)">
+    <text x="850" y="24" text-anchor="end" class="display ink" font-size="25">Agents coordinate. They never hold the key.</text>
+    <text x="850" y="53" text-anchor="end" class="body muted" font-size="15">A visual fact may change the plan. Only verified identities may change release state.</text>
+  </g>
+  <path d="M70 142 H1730" stroke="#D7DFEA" stroke-width="1.5"/>
 
-  <!-- Lane headings -->
-  <g transform="translate(48 146)">
-    <text class="kicker mono">01 · AUTHENTICATED INTAKE</text>
-    <text y="31" class="laneTitle display">Open one mission</text>
+  <!-- Lane 01 -->
+  <g filter="url(#shadow)"><rect x="70" y="205" width="320" height="620" rx="22" class="lane"/></g>
+  <g transform="translate(98 238)">
+    <text class="mono blue" font-size="12" letter-spacing="1.5">01 · AUTHENTICATED INTAKE</text>
+    <text y="35" class="display ink" font-size="25">Open one mission</text>
   </g>
-  <g transform="translate(338 146)">
-    <text class="kicker mono">02 · ADK COORDINATION PLANE</text>
-    <text y="31" class="laneTitle display">Delegate by tool scope</text>
+  <g transform="translate(98 324)">
+    <rect width="264" height="126" rx="14" class="nodeGreen"/>
+    <g transform="translate(20 20)" color="#17815D"><path class="iconStroke" d="M3 12h22M18 5l7 7-7 7"/></g>
+    <text x="58" y="28" class="mono green" font-size="10">NATIVE · EVENT ID + TRACE</text>
+    <text x="20" y="64" class="display ink" font-size="20">Pub/Sub → Eventarc</text>
+    <text x="20" y="91" class="body muted" font-size="14">Authenticated CloudEvent</text>
+    <text x="20" y="111" class="body muted" font-size="14">deduplicates to one mission.</text>
   </g>
-  <g transform="translate(802 146)">
-    <text class="kicker mono">03 · DETERMINISTIC AUTHORITY</text>
-    <text y="31" class="laneTitle display">One state writer</text>
-  </g>
-  <g transform="translate(1246 146)">
-    <text class="kicker mono">04 · CONSEQUENCE</text>
-    <text y="31" class="laneTitle display">Release, then notify</text>
-  </g>
-
-  <!-- Input nodes -->
-  <g transform="translate(48 211)">
-    <rect class="nodeGreen" width="242" height="104" rx="10"/>
-    <text x="17" y="27" class="mono" fill="#55d6a6" font-size="10">NATIVE · GOOGLE MANAGED</text>
-    <text x="17" y="53" class="nodeTitle display">Pub/Sub → Eventarc</text>
-    <text x="17" y="75" class="nodeCopy body">CloudEvent ID + source + trace</text>
-    <text x="17" y="93" class="nodeCopy body">deduplicate the casualty envelope.</text>
-  </g>
-  <g transform="translate(48 338)">
-    <rect class="nodeBlue" width="242" height="104" rx="10"/>
-    <text x="17" y="27" class="mono" fill="#6e9eff" font-size="10">PREPARED · DIGEST-BOUND · NO UPLOAD</text>
-    <text x="17" y="53" class="nodeTitle display">Multimodal evidence pair</text>
-    <text x="17" y="75" class="nodeCopy body">Rejection scan → typed extraction</text>
-    <text x="17" y="93" class="nodeCopy body">Hostile email → quarantine</text>
-  </g>
-  <g transform="translate(48 465)">
-    <rect class="nodeBlue" width="242" height="92" rx="10"/>
-    <text x="17" y="25" class="mono" fill="#6e9eff" font-size="10">PUBLIC CLOUD RUN · ID TOKEN</text>
-    <text x="17" y="50" class="nodeTitle display">Next.js server relay</text>
-    <text x="17" y="72" class="nodeCopy body">Exact allowlist · server-bound actor</text>
-  </g>
-  <g transform="translate(48 584)">
-    <rect class="nodeRed" width="242" height="72" rx="10"/>
-    <text x="17" y="25" class="mono" fill="#ff8b8b" font-size="10">EXCEPTION · FAIL CLOSED</text>
-    <text x="17" y="49" class="nodeTitle display">Untrusted text quarantined</text>
-    <text x="17" y="64" class="tiny mono">zero fact · zero memory · zero transition</text>
-  </g>
-
-  <!-- ADK plane -->
-  <g transform="translate(338 211)">
-    <rect width="420" height="445" rx="12" fill="url(#bluePanel)" stroke="#4f8cff" stroke-width="1.4"/>
-    <rect x="18" y="18" width="384" height="84" rx="9" class="nodeBlue"/>
-    <text x="36" y="43" class="mono" fill="#6e9eff" font-size="10">AGENT RUNTIME · GEMINI 3.5+ @ GLOBAL</text>
-    <text x="36" y="69" class="nodeTitle display">ADK Mission Coordinator</text>
-    <text x="36" y="88" class="nodeCopy body">Four transfers · exactly one bounded resume tool</text>
-    <rect x="310" y="39" width="73" height="24" rx="12" class="fixture"/>
-    <text x="346.5" y="55" text-anchor="middle" class="badgeText" fill="#f6b84c">POST ×1</text>
-
-    <g transform="translate(18 126)">
-      <rect class="node" width="186" height="113" rx="9"/>
-      <text x="14" y="24" class="mono" fill="#6e9eff" font-size="9">READ ONLY</text>
-      <text x="14" y="48" class="nodeTitle display" font-size="15">Evidence worker</text>
-      <text x="14" y="69" class="nodeCopy body">Statuses · fact keys</text>
-      <text x="14" y="87" class="nodeCopy body">digests · no raw text</text>
-      <text x="14" y="103" class="tiny mono">inspect_evidence_scope</text>
+  <g transform="translate(98 474)">
+    <rect width="264" height="168" rx="14" class="nodeBlue"/>
+    <text x="20" y="29" class="mono blue" font-size="10">PREPARED · DIGEST-BOUND</text>
+    <text x="20" y="63" class="display ink" font-size="20">Evidence pair</text>
+    <g transform="translate(20 83)">
+      <rect width="105" height="58" rx="10" fill="#FFFFFF" stroke="#B9CAE6"/>
+      <path d="M17 15h16v22H17zM21 20h8M21 25h8M21 30h5" fill="none" stroke="#326BDB" stroke-width="1.8"/>
+      <text x="43" y="25" class="display ink" font-size="13">Scan</text>
+      <text x="43" y="43" class="mono green" font-size="9">VALID</text>
     </g>
-    <g transform="translate(216 126)">
-      <rect class="node" width="186" height="113" rx="9"/>
-      <text x="14" y="24" class="mono" fill="#6e9eff" font-size="9">READ ONLY</text>
-      <text x="14" y="48" class="nodeTitle display" font-size="15">Security worker</text>
-      <text x="14" y="69" class="nodeCopy body">Human + insurer</text>
-      <text x="14" y="87" class="nodeCopy body">+ adjuster references</text>
-      <text x="14" y="103" class="tiny mono">inspect_security_scope</text>
-    </g>
-    <g transform="translate(18 251)">
-      <rect class="node" width="186" height="113" rx="9"/>
-      <text x="14" y="24" class="mono" fill="#6e9eff" font-size="9">READ ONLY</text>
-      <text x="14" y="48" class="nodeTitle display" font-size="15">Authority worker</text>
-      <text x="14" y="69" class="nodeCopy body">Acceptance · order</text>
-      <text x="14" y="87" class="nodeCopy body">+ carrier read-back</text>
-      <text x="14" y="103" class="tiny mono">inspect_authority_scope</text>
-    </g>
-    <g transform="translate(216 251)">
-      <rect class="node" width="186" height="113" rx="9"/>
-      <text x="14" y="24" class="mono" fill="#6e9eff" font-size="9">READ ONLY</text>
-      <text x="14" y="48" class="nodeTitle display" font-size="15">Recovery worker</text>
-      <text x="14" y="69" class="nodeCopy body">Classifies durable run;</text>
-      <text x="14" y="87" class="nodeCopy body">cannot acquire a lease</text>
-      <text x="14" y="103" class="tiny mono">assess_runtime_recovery</text>
-    </g>
-    <text x="210" y="405" text-anchor="middle" class="mono" fill="#9eabbc" font-size="10">Gemini visual extraction → typed schema → policy validation</text>
-    <text x="210" y="426" text-anchor="middle" class="mono" fill="#55d6a6" font-size="10">Identity · Gateway · Registry · bounded recovery · no peer transfer</text>
-  </g>
-
-  <!-- Authority core -->
-  <g transform="translate(802 211)">
-    <rect class="nodeAmber" width="400" height="126" rx="11" filter="url(#softGlow)"/>
-    <text x="18" y="28" class="mono" fill="#f6b84c" font-size="10">PRIVATE CLOUD RUN · SOLE WRITER</text>
-    <text x="18" y="57" class="nodeTitle display" font-size="20">Deterministic receipt saga</text>
-    <text x="18" y="80" class="nodeCopy body">Prior state + version + validated evidence + signed receipt</text>
-    <text x="18" y="101" class="nodeCopy body">decide every transition. Rejection selects revision 2.</text>
-    <rect x="304" y="18" width="78" height="25" rx="12" class="fixture"/>
-    <text x="343" y="35" text-anchor="middle" class="badgeText" fill="#f6b84c">AUTHORITY</text>
-  </g>
-  <g transform="translate(802 359)">
-    <rect class="nodeGreen" width="190" height="105" rx="10"/>
-    <text x="16" y="27" class="mono" fill="#55d6a6" font-size="10">NATIVE · POSTGRESQL 16</text>
-    <text x="16" y="53" class="nodeTitle display">Cloud SQL</text>
-    <text x="16" y="75" class="nodeCopy body">Leases · versions · receipts</text>
-    <text x="16" y="93" class="nodeCopy body">hash-linked activity</text>
-  </g>
-  <g transform="translate(1012 359)">
-    <rect class="nodeAmber" width="190" height="105" rx="10"/>
-    <text x="16" y="27" class="mono" fill="#f6b84c" font-size="10">HUMAN KEY</text>
-    <text x="16" y="53" class="nodeTitle display">Owner attestation</text>
-    <text x="16" y="75" class="nodeCopy body">One explicit synthetic</text>
-    <text x="16" y="93" class="nodeCopy body">owner-bond decision</text>
-  </g>
-  <g transform="translate(802 486)">
-    <rect class="node" width="400" height="170" rx="10"/>
-    <text x="18" y="27" class="mono" fill="#f6b84c" font-size="10">PRIVATE CLOUD RUN · FIXTURE BUSINESS DATA</text>
-    <text x="18" y="55" class="nodeTitle display">Independent partner identities</text>
-    <g transform="translate(18 76)">
-      <rect class="fixture" width="110" height="66" rx="8"/>
-      <text x="55" y="26" text-anchor="middle" class="display" fill="#f4f7fb" font-size="14">Insurer</text>
-      <text x="55" y="47" text-anchor="middle" class="tiny mono">guarantee</text>
-    </g>
-    <g transform="translate(145 76)">
-      <rect class="fixture" width="110" height="66" rx="8"/>
-      <text x="55" y="26" text-anchor="middle" class="display" fill="#f4f7fb" font-size="14">Adjuster</text>
-      <text x="55" y="47" text-anchor="middle" class="tiny mono">reject → accept</text>
-    </g>
-    <g transform="translate(272 76)">
-      <rect class="fixture" width="110" height="66" rx="8"/>
-      <text x="55" y="26" text-anchor="middle" class="display" fill="#f4f7fb" font-size="14">Carrier</text>
-      <text x="55" y="47" text-anchor="middle" class="tiny mono">order + read-back</text>
+    <g transform="translate(139 83)">
+      <rect width="105" height="58" rx="10" fill="#FFFFFF" stroke="#E5BEC1"/>
+      <path d="M16 18h18v14H16zM16 18l9 8 9-8" fill="none" stroke="#C94D57" stroke-width="1.8"/>
+      <text x="43" y="25" class="display ink" font-size="13">Email</text>
+      <text x="43" y="43" class="mono coral" font-size="9">HOSTILE</text>
     </g>
   </g>
+  <g transform="translate(98 676)">
+    <rect width="264" height="96" rx="14" class="nodeCoral"/>
+    <text x="20" y="27" class="mono coral" font-size="10">EXCEPTION · FAIL CLOSED</text>
+    <text x="20" y="56" class="display ink" font-size="18">Quarantine</text>
+    <text x="20" y="78" class="body muted" font-size="13">Zero fact · memory · transition</text>
+  </g>
+  <path d="M289 616 C340 642 332 688 294 706" class="exceptionEdge"/>
 
-  <!-- Consequence -->
-  <g transform="translate(1246 211)">
-    <rect class="nodeGreen" width="306" height="162" rx="12" filter="url(#softGlow)"/>
-    <text x="18" y="30" class="mono" fill="#55d6a6" font-size="10">TWO VERIFIED KEYS</text>
-    <text x="18" y="65" class="display" fill="#f4f7fb" font-size="30">PHYSICAL CARGO</text>
-    <text x="18" y="103" class="display" fill="#55d6a6" font-size="38">RELEASED</text>
-    <text x="18" y="134" class="body" fill="#9eabbc" font-size="13">Adjustment lifecycle remains OPEN.</text>
+  <!-- Lane 02 -->
+  <g filter="url(#shadow)"><rect x="450" y="205" width="420" height="620" rx="22" class="lane"/></g>
+  <g transform="translate(478 238)">
+    <text class="mono blue" font-size="12" letter-spacing="1.5">02 · GEMINI + ADK FLEET</text>
+    <text y="35" class="display ink" font-size="25">Inspect and propose</text>
   </g>
-  <g transform="translate(1246 398)">
-    <rect class="nodeGreen" width="306" height="112" rx="10"/>
-    <text x="18" y="29" class="mono" fill="#55d6a6" font-size="10">POST-READ-BACK ONLY</text>
-    <text x="18" y="57" class="nodeTitle display">Marked Slack proof</text>
-    <text x="18" y="80" class="nodeCopy body">One idempotent synthetic notice</text>
-    <text x="18" y="98" class="nodeCopy body">to an operator-owned endpoint.</text>
+  <g transform="translate(478 324)">
+    <rect width="364" height="112" rx="14" class="nodeBlue"/>
+    <text x="20" y="27" class="mono blue" font-size="10">AGENT RUNTIME · GEMINI 3.5+</text>
+    <text x="20" y="59" class="display ink" font-size="21">Mission Coordinator</text>
+    <text x="20" y="84" class="body muted" font-size="14">Four transfers · one bounded resume tool</text>
+    <rect x="270" y="19" width="74" height="26" rx="13" fill="#FFF1D5" stroke="#E4B96D"/>
+    <text x="307" y="36" text-anchor="middle" class="mono amber" font-size="9">POST ×1</text>
   </g>
-  <g transform="translate(1246 535)">
-    <rect class="node" width="306" height="121" rx="10"/>
-    <text x="18" y="27" class="mono" fill="#a7b4ff" font-size="10">ADVISORY MODELS · ZERO AUTHORITY</text>
-    <text x="18" y="54" class="nodeTitle display">Gemma · Embedding 2 · Veo</text>
-    <text x="18" y="77" class="nodeCopy body">Sanitized review · rank-only cases</text>
-    <text x="18" y="97" class="nodeCopy body">· post-release training replay</text>
+  <g transform="translate(478 460)">
+    <rect width="364" height="102" rx="14" class="node"/>
+    <text x="20" y="27" class="mono blue" font-size="10">LOAD-BEARING VISUAL READER</text>
+    <text x="20" y="57" class="display ink" font-size="19">Gemini extraction</text>
+    <text x="20" y="81" class="body muted" font-size="14">Typed schema → deterministic validation</text>
+  </g>
+  <g transform="translate(478 586)">
+    <g><rect width="174" height="72" rx="12" class="node"/><text x="15" y="25" class="mono blue" font-size="9">READ ONLY</text><text x="15" y="50" class="display ink" font-size="16">Evidence worker</text></g>
+    <g transform="translate(190)"><rect width="174" height="72" rx="12" class="node"/><text x="15" y="25" class="mono blue" font-size="9">READ ONLY</text><text x="15" y="50" class="display ink" font-size="16">Security worker</text></g>
+    <g transform="translate(0 88)"><rect width="174" height="72" rx="12" class="node"/><text x="15" y="25" class="mono blue" font-size="9">READ ONLY</text><text x="15" y="50" class="display ink" font-size="16">Authority worker</text></g>
+    <g transform="translate(190 88)"><rect width="174" height="72" rx="12" class="node"/><text x="15" y="25" class="mono blue" font-size="9">READ ONLY</text><text x="15" y="50" class="display ink" font-size="16">Recovery worker</text></g>
+  </g>
+  <text x="660" y="786" text-anchor="middle" class="mono green" font-size="11">ALL OUTPUT · release_authority=false</text>
+
+  <!-- Lane 03 -->
+  <g filter="url(#shadow)"><rect x="930" y="205" width="430" height="620" rx="22" class="lane"/></g>
+  <g transform="translate(958 238)">
+    <text class="mono amber" font-size="12" letter-spacing="1.5">03 · DETERMINISTIC AUTHORITY</text>
+    <text y="35" class="display ink" font-size="25">Require two keys</text>
+  </g>
+  <g transform="translate(958 324)">
+    <rect width="374" height="128" rx="14" class="nodeAmber"/>
+    <text x="20" y="28" class="mono amber" font-size="10">PRIVATE CLOUD RUN · SOLE WRITER</text>
+    <text x="20" y="63" class="display ink" font-size="22">Receipt saga controller</text>
+    <text x="20" y="89" class="body muted" font-size="14">Prior state + version + validated evidence</text>
+    <text x="20" y="110" class="body muted" font-size="14">+ signed receipt decide every transition.</text>
+  </g>
+  <g transform="translate(958 478)">
+    <rect width="178" height="112" rx="14" class="nodeGreen"/>
+    <text x="17" y="27" class="mono green" font-size="9">POSTGRESQL 16</text>
+    <text x="17" y="57" class="display ink" font-size="19">Cloud SQL</text>
+    <text x="17" y="81" class="body muted" font-size="13">Versions · leases</text>
+    <text x="17" y="99" class="body muted" font-size="13">receipts · hashes</text>
+  </g>
+  <g transform="translate(1154 478)">
+    <rect width="178" height="112" rx="14" class="nodeAmber"/>
+    <text x="17" y="27" class="mono amber" font-size="9">KEY 1 · HUMAN</text>
+    <text x="17" y="57" class="display ink" font-size="19">Attestation</text>
+    <text x="17" y="81" class="body muted" font-size="13">One explicit owner</text>
+    <text x="17" y="99" class="body muted" font-size="13">bond approval</text>
+  </g>
+  <g transform="translate(958 616)">
+    <rect width="374" height="118" rx="14" class="nodeGreen"/>
+    <text x="20" y="27" class="mono green" font-size="9">KEY 2 · SIGNED PARTNER RECEIPTS</text>
+    <text x="20" y="58" class="display ink" font-size="19">Insurer · Adjuster · Carrier</text>
+    <text x="20" y="83" class="body muted" font-size="13">Guarantee · reject → accept · order + read-back</text>
+    <text x="20" y="103" class="body muted" font-size="13">Identity-bound and replay-safe</text>
+  </g>
+  <path d="M958 675 C912 675 912 438 958 438" class="exceptionEdge"/>
+  <rect x="985" y="750" width="255" height="30" rx="15" fill="#FFF2F3"/>
+  <text x="1112" y="770" text-anchor="middle" class="mono coral" font-size="10">v1 REJECTED → CORRECTED v2</text>
+
+  <!-- Lane 04 -->
+  <g filter="url(#shadow)"><rect x="1420" y="205" width="310" height="620" rx="22" class="lane"/></g>
+  <g transform="translate(1448 238)">
+    <text class="mono green" font-size="12" letter-spacing="1.5">04 · CONSEQUENCE</text>
+    <text y="35" class="display ink" font-size="25">Release, then notify</text>
+  </g>
+  <g transform="translate(1460 346)">
+    <rect width="230" height="200" rx="20" fill="#EEF4FF" stroke="#AFC3E8" stroke-width="1.5"/>
+    <path d="M30 76h170v90H30z" fill="#326BDB" stroke="#214EAE" stroke-width="5"/>
+    <path d="M51 76v90M78 76v90M105 76v90M132 76v90M159 76v90M186 76v90" stroke="#75A0F0" stroke-width="2"/>
+    <path d="M115 76v90" stroke="#173B86" stroke-width="5"/>
+    <circle cx="91" cy="120" r="17" fill="#17815D" stroke="#fff" stroke-width="4"/>
+    <circle cx="139" cy="120" r="17" fill="#17815D" stroke="#fff" stroke-width="4"/>
+    <path d="M84 120l5 5 10-11M132 120l5 5 10-11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="115" y="35" text-anchor="middle" class="mono green" font-size="10">TWO VERIFIED KEYS</text>
+    <text x="115" y="188" text-anchor="middle" class="mono muted" font-size="10">PHYSICAL RELEASE BAY</text>
+  </g>
+  <g transform="translate(1460 574)">
+    <rect width="230" height="76" rx="16" fill="#17815D"/>
+    <text x="115" y="31" text-anchor="middle" class="mono" fill="#DDF6EC" font-size="10">CARGO STATE</text>
+    <text x="115" y="58" text-anchor="middle" class="display" fill="#FFFFFF" font-size="27">RELEASED</text>
+  </g>
+  <g transform="translate(1460 678)">
+    <rect width="230" height="102" rx="14" class="node"/>
+    <text x="16" y="27" class="mono blue" font-size="9">ONLY AFTER READ-BACK</text>
+    <text x="16" y="54" class="display ink" font-size="17">Marked Slack notice</text>
+    <text x="16" y="76" class="body muted" font-size="12">Veo replay → private GCS</text>
+    <text x="16" y="93" class="body muted" font-size="12">Adjustment remains OPEN</text>
   </g>
 
-  <!-- Main edges -->
-  <path d="M290 263 C312 263 312 196 334 196 H776 C792 196 790 251 802 257" class="advanceEdge"/>
-  <path d="M290 511 C312 511 312 680 334 680 H776 C794 680 790 304 802 295" class="advanceEdge"/>
-  <path d="M169 442 V584" class="exceptionEdge"/>
-  <path d="M758 272 C775 272 785 272 802 272" class="advanceEdge"/>
-  <path d="M758 355 C778 355 782 319 802 319" class="readEdge"/>
-  <path d="M1000 337 V359" class="authorityEdge"/>
-  <path d="M1107 464 V486" class="advanceEdge"/>
-  <path d="M1202 571 C1225 571 1225 310 1246 310" class="authorityEdge"/>
-  <path d="M1399 373 V398" class="authorityEdge"/>
-  <path d="M1246 596 C1225 596 1227 330 1202 330" class="readEdge"/>
-  <path d="M1102 562 C1168 530 1180 356 1138 337" class="exceptionEdge"/>
-  <text x="1162" y="472" class="tiny mono" fill="#ff8b8b" transform="rotate(-73 1162 472)">rejection → corrected revision</text>
+  <!-- Main flow -->
+  <path d="M390 390 H438" class="advanceEdge"/>
+  <path d="M390 548 H438" class="readEdge"/>
+  <path d="M870 388 H918" class="advanceEdge"/>
+  <path d="M1360 650 C1390 650 1390 612 1420 612" class="authorityEdge"/>
 
-  <!-- Platform control band -->
-  <g transform="translate(48 710)">
-    <rect width="1504" height="142" rx="12" fill="#111c2a" stroke="#304258"/>
-    <text x="20" y="27" class="kicker mono">GOOGLE-MANAGED GOVERNANCE + OBSERVABILITY</text>
-    <g transform="translate(20 48)">
-      <rect class="nodeBlue" width="220" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Agent Gateway + Identity</text>
-      <text x="14" y="48" class="nodeCopy body">Fail-closed exact Registry allowlist</text>
-      <text x="14" y="64" class="tiny mono">IAP request authorization</text>
-    </g>
-    <g transform="translate(255 48)">
-      <rect class="nodeBlue" width="220" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Agent Registry</text>
-      <text x="14" y="48" class="nodeCopy body">Coordinator + approved endpoints</text>
-      <text x="14" y="64" class="tiny mono">versioned discovery</text>
-    </g>
-    <g transform="translate(490 48)">
-      <rect class="nodeGreen" width="220" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Model Armor</text>
-      <text x="14" y="48" class="nodeCopy body">Managed injection sanitize probe</text>
-      <text x="14" y="64" class="tiny mono">cargo-release-policy</text>
-    </g>
-    <g transform="translate(725 48)">
-      <rect class="nodeGreen" width="220" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Observability</text>
-      <text x="14" y="48" class="nodeCopy body">Cloud Trace + structured spans</text>
-      <text x="14" y="64" class="tiny mono">hash-linked mission ledger</text>
-    </g>
-    <g transform="translate(960 48)">
-      <rect class="nodeBlue" width="220" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Memory Bank</text>
-      <text x="14" y="48" class="nodeCopy body">Reviewed post-release facts only</text>
-      <text x="14" y="64" class="tiny mono">never authoritative state</text>
-    </g>
-    <g transform="translate(1195 48)">
-      <rect class="node" width="289" height="72" rx="8"/>
-      <text x="14" y="25" class="nodeTitle display" font-size="15">Truth legend</text>
-      <circle cx="20" cy="48" r="5" fill="#55d6a6"/><text x="32" y="52" class="tiny mono">NATIVE</text>
-      <circle cx="98" cy="48" r="5" fill="#6e9eff"/><text x="110" y="52" class="tiny mono">ADAPTER</text>
-      <circle cx="190" cy="48" r="5" fill="#f6b84c"/><text x="202" y="52" class="tiny mono">FIXTURE</text>
-    </g>
+  <!-- Trust plane -->
+  <g filter="url(#shadow)"><rect x="70" y="875" width="1660" height="178" rx="22" fill="#FFFFFF" stroke="#D7DFEA" stroke-width="1.5"/></g>
+  <g transform="translate(100 908)">
+    <text class="mono blue" font-size="11" letter-spacing="1.5">CROSS-CUTTING TRUST PLANE</text>
+    <text y="31" class="display ink" font-size="21">Identity and evidence around every transition</text>
+  </g>
+  <g transform="translate(560 906)" class="mono" font-size="11">
+    <g><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">IDENTITY</text></g>
+    <g transform="translate(142)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">GATEWAY</text></g>
+    <g transform="translate(284)"><rect width="142" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="71" y="26" text-anchor="middle" class="blue">MODEL ARMOR</text></g>
+    <g transform="translate(440)"><rect width="128" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="64" y="26" text-anchor="middle" class="blue">REGISTRY</text></g>
+    <g transform="translate(582)"><rect width="146" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="73" y="26" text-anchor="middle" class="blue">MEMORY BANK</text></g>
+    <g transform="translate(742)"><rect width="150" height="42" rx="21" fill="#F1F6FF" stroke="#B9CAE6"/><text x="75" y="26" text-anchor="middle" class="blue">TRACE + LOGS</text></g>
+  </g>
+  <g transform="translate(560 972)" class="mono" font-size="10">
+    <path d="M0 15h65" class="readEdge"/><text x="82" y="19" class="muted">READ-ONLY INSPECTION</text>
+    <path d="M296 15h65" class="advanceEdge"/><text x="378" y="19" class="muted">BOUNDED ACTION / HUMAN RESUME</text>
+    <path d="M734 15h65" class="authorityEdge"/><text x="816" y="19" class="muted">VERIFIED RECEIPT</text>
   </g>
 
-  <text x="48" y="882" class="mono" fill="#6f7e91" font-size="10">Cobalt = read-only inspection · amber = human/bounded advance · green = verified receipt/consequence · red = exception annotation</text>
-  <text x="1552" y="882" text-anchor="end" class="mono" fill="#6f7e91" font-size="10">Fictional cargo mission · synthetic partner data · no real cargo action</text>
+  <!-- Footer -->
+  <g transform="translate(70 1105)">
+    <rect width="1660" height="46" rx="12" fill="#17243A"/>
+    <text x="24" y="29" class="mono" fill="#FFFFFF" font-size="12">INVARIANT · MODEL OUTPUT, MEMORY, AND WORKERS NEVER WRITE RELEASE STATE</text>
+    <text x="1636" y="29" text-anchor="end" class="mono" fill="#AFC6F6" font-size="11">Cloud Run · Cloud SQL · Pub/Sub · Eventarc · Vertex AI</text>
+  </g>
 </svg>

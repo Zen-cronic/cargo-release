@@ -97,7 +97,7 @@ export function MissionRoom() {
   const [tab, setTab] = useState<WorkspaceTab>("mission");
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   const reset = useCallback(async () => {
     setBusy(true); setError(null); setTab("mission");

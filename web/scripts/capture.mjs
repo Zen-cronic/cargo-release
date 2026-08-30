@@ -9,6 +9,7 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.goto(target);
 await page.getByRole("heading", { name: "Cargo held at North Harbor" }).waitFor();
+await page.locator(".app-shell.theme-light").waitFor();
 await page.screenshot({ path: `${output}/held.png`, fullPage: true });
 await page.getByRole("button", { name: "Authority map", exact: true }).click();
 await page.getByRole("heading", { name: "Authority moves. Agents do not own it." }).waitFor();
@@ -42,7 +43,6 @@ await page.getByText("QUARANTINED", { exact: true }).waitFor();
 await page.screenshot({ path: `${output}/quarantined-email.png`, fullPage: true });
 
 await page.getByRole("button", { name: "Authority map", exact: true }).click();
-await page.getByRole("button", { name: "Use light theme" }).click();
 await page.screenshot({ path: `${output}/authority-light.png`, fullPage: true });
 await browser.close();
 console.log(`visual captures written to ${output}`);

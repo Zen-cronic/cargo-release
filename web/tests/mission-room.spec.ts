@@ -82,7 +82,6 @@ test("authority map exposes real worker scopes and a duplicate-safe friction met
   await expect(page.getByText("Deterministic Receipt Saga", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
-  await page.getByRole("button", { name: "Use light theme" }).click();
   await expect(page.locator(".app-shell")).toHaveClass(/theme-light/);
   await expect(page.getByRole("button", { name: "Use dark theme" })).toBeVisible();
 
@@ -117,6 +116,11 @@ test("authority map exposes real worker scopes and a duplicate-safe friction met
     return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
   });
   expect(lightThemeContrast).toBeGreaterThanOrEqual(4.5);
+
+  await page.getByRole("button", { name: "Use dark theme" }).click();
+  await expect(page.locator(".app-shell")).toHaveClass(/theme-dark/);
+  await page.getByRole("button", { name: "Use light theme" }).click();
+  await expect(page.locator(".app-shell")).toHaveClass(/theme-light/);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const hasHorizontalOverflow = await page.evaluate(

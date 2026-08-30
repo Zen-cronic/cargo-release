@@ -50,6 +50,10 @@ async function openMission(name, heading = "Cargo released") {
     state: "visible",
     timeout: 45_000,
   });
+  await page.locator(".app-shell.theme-light").waitFor({
+    state: "visible",
+    timeout: 45_000,
+  });
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
