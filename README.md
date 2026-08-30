@@ -185,9 +185,9 @@ export CARGO_RELEASE_MULTIMODAL_MODE=FIXTURE
 ```
 
 For the managed visual extractor, set `CARGO_RELEASE_MULTIMODAL_MODE=VERTEX` plus the existing
-model project/location configuration. The current repository candidate is locally verified; the
-public URL above still represents the previously promoted managed build until a separately
-approved preview/promotion occurs.
+model project/location configuration. The light multimodal build is live at the public URL above.
+Its extraction path remains in deterministic `FIXTURE` mode until a separately staged Vertex
+configuration passes managed proof and promotion.
 
 ## Reproducible verification
 
@@ -235,7 +235,7 @@ Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `
 | Durable authority | Cloud SQL PostgreSQL 16 instance `cargo-release-postgres` |
 | Agent runtime | Vertex AI Agent Runtime + Agent Identity + automatic Registry entry |
 | Event intake | Pub/Sub + Eventarc with retained CloudEvent and trace identifiers |
-| Multimodal intake | Candidate pending deploy: prepared PNG → Gemini 3.5 extraction → deterministic validation |
+| Multimodal intake | Prepared PNG → deterministic fixture extraction → policy validation is live; the Vertex adapter is implemented but pending managed activation proof |
 | Partner boundary | Three private Cloud Run services with separate service accounts |
 | Governance | Agent Gateway, IAP request authorization, Registry, Model Armor |
 | Advisory models | Vertex AI Gemma 4, Gemini Embedding 2, and Veo 3.1 Fast |
@@ -243,11 +243,13 @@ Project: `ata-2026-cargo` · primary region: `us-central1` · model inference: `
 | Operator consequence | Secret Manager-backed Slack incoming webhook |
 | Observability | Cloud Logging, Cloud Trace, structured mission spans and hash-linked events |
 
-Current recording build, promoted 2026-08-25 after separate exact-revision approval:
+Current light multimodal build, promoted 2026-08-30 after a zero-traffic stage and smoke test:
 
-- controller `cargo-release-controller-00021-tac` at 100%, with `00019-ton` retained Ready for
+- controller `cargo-release-controller-00023-hay` at 100%, with `00021-tac` retained Ready for
   rollback;
-- web `cargo-release-web-00016-nol` at 100%, with `00014-pag` retained Ready for rollback;
+- web `cargo-release-web-00018-jam` at 100%, with `00016-nol` retained Ready for rollback;
+- public light-theme smoke: health `200`, forbidden relay `404`, query forwarding `400`, PostgreSQL
+  authority, held state, and five prepared evidence sources;
 - managed four-worker invocation `e-3277014e-be11-4945-acc9-658e1c0bbbb6` on Gemini 3.5 Flash;
 - canonical post-promotion rehearsal: 11 assertions and 5 captures passed, including Eventarc
   provenance, the Authority Map, Slack proof, all three bonus-model receipts, and the deterministic
