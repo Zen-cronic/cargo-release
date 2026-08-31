@@ -12,7 +12,7 @@ carrier.**
 | Demo video | `PENDING — replace with the public Alex v7 YouTube or Vimeo URL` |
 | Hackathon blog post | `PENDING — replace with the public post URL` |
 | Social post | `PENDING — replace with the public #AllThingsAgentic post URL` |
-| Upstream OSS contribution | [google/adk-docs#2187](https://github.com/google/adk-docs/pull/2187) — open; Google CLA pending |
+| Upstream OSS contribution | [google/adk-docs#2187](https://github.com/google/adk-docs/pull/2187) — open; automated checks passing |
 
 > **The twist:** agents do the work; receipts—not agents—hold the keys. One owner attestation can
 > drive the security submission, rejection, correction, acceptance, carrier order, carrier

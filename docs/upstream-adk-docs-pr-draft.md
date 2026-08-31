@@ -1,6 +1,6 @@
 # Upstream contribution — ADK Express Mode client migration
 
-**Status:** [PR #2187 OPEN](https://github.com/google/adk-docs/pull/2187) — Google CLA pending
+**Status:** [PR #2187 OPEN](https://github.com/google/adk-docs/pull/2187) — automated checks passing
 **Target:** [`google/adk-docs`](https://github.com/google/adk-docs)
 **Observed:** 2026-08-31 at ADK docs commit
 `1203686bb4a30351393d3bccea06abd91f008e19`
@@ -135,8 +135,8 @@ constructor, so this is a separate correction.
 
 - PR: <https://github.com/google/adk-docs/pull/2187>
 - Fork branch: <https://github.com/Zen-cronic/adk-docs/tree/docs/express-mode-agentplatform>
-- Commit: <https://github.com/google/adk-docs/pull/2187/commits/50f02aa94efa570740d15e2bfe5236a0613f5b3b>
-- Current state at filing: open and mergeable; Google CLA check pending operator completion.
+- Commit: <https://github.com/google/adk-docs/pull/2187/commits/2226966b2c6b27759fd528e6dec112fb57fd3aea>
+- Current state: open and mergeable; Google CLA, header, and change checks passing.
 
 ## Prepared fallback issue
 
@@ -219,5 +219,5 @@ and submit manually. Merely opening this link does not create an issue.
 - [x] Prefer the PR; do not file the duplicate fallback issue.
 - [x] File under the operator's GitHub identity.
 - [x] Copy the real PR URL into Devpost/README after GitHub shows it exists.
-- [ ] Complete the Google CLA and confirm the check reruns successfully.
+- [x] Remove the uncovered automation co-author and confirm the Google CLA rescan passes.
 - [x] Describe the state as `open`, never `accepted` or `merged` unless GitHub proves that state.

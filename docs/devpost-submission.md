@@ -160,5 +160,5 @@ article is public and verified logged out.
 ## Upstream OSS contribution
 
 [google/adk-docs#2187](https://github.com/google/adk-docs/pull/2187) — open documentation PR,
-verified publicly on 2026-08-31. Google CLA completion is pending; do not describe it as accepted or
-merged unless GitHub shows that state.
+verified publicly on 2026-08-31 with its Google CLA, header, and change checks passing. Do not
+describe it as accepted or merged unless GitHub shows that state.
