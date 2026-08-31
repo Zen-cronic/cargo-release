@@ -5,11 +5,11 @@ released after a General Average casualty without letting an AI become the insur
 carrier.**
 
 [Open the live Google Cloud deployment](https://cargo-release-web-1015646664425.us-central1.run.app)
-· [Inspect the Alex v6 proof mission](https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-13820650dbee)
+· [Inspect the Alex v7 proof mission](https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-13820650dbee)
 
 | Submission artifact | Link |
 |---|---|
-| Demo video | `PENDING — replace with the public Alex v6 YouTube or Vimeo URL` |
+| Demo video | `PENDING — replace with the public Alex v7 YouTube or Vimeo URL` |
 | Hackathon blog post | `PENDING — replace with the public post URL` |
 | Social post | `PENDING — replace with the public #AllThingsAgentic post URL` |
 | Upstream OSS contribution | `PENDING — replace only after the ADK documentation PR is filed and verified` |
@@ -282,22 +282,24 @@ PostgreSQL health, promoted web, and passed canonical relay results `200/404/400
 traffic/image audit confirmed both serving revisions and both rollback revisions Ready on immutable
 digests.
 
-The current Alex v6 continuous Proof-of-Action candidate published Pub/Sub message
-`21614781193876288` and recorded mission `mission-13820650dbee` from native Eventarc intake through
-one owner attestation, the retained adjuster rejection and correction, five verified receipts,
-carrier read-back, and a marked Slack delivery. Final state is physical cargo `RELEASED`, General
-Average adjustment `OPEN`, and run `COMPLETED`; visual extraction is truth-labelled
-`FIXTURE` / `ACCEPTED`.
+The Alex v7 candidate preserves the complete Alex v6 continuous Proof-of-Action run, which
+published Pub/Sub message `21614781193876288` and recorded mission `mission-13820650dbee` from
+native Eventarc intake through one owner attestation, the retained adjuster rejection and
+correction, five verified receipts, carrier read-back, and a marked Slack delivery. Final state is
+physical cargo `RELEASED`, General Average adjustment `OPEN`, and run `COMPLETED`; visual extraction
+is truth-labelled `FIXTURE` / `ACCEPTED`.
 
-The 1920×1080 H.264/AAC master is 196.84 seconds, contains one continuous source with zero cuts or
-splices, has no detected black frames, uses Alex voice `17bSMslPF4HPyQrGIXAG`, and peaks at -2 dB.
-Its source SHA-256 is
-`c782a17507276a97a37ce23dc3bb9036cde6a01cf7b6bc64c7baf720c58180d3`; the master SHA-256 is
-`7f32ab30d967da83571fad6b9f7dc487942d28094ec62fbeabc0f871217fe6c2`. At 0:08, the video visibly
-shows the exact public `.run.app` URL beside its fresh native Eventarc mission and Pub/Sub message
-ID. The architecture scene then names the exact Google Cloud service at each step. Older v2–v5
-candidates remain preserved; publication and logged-out 1080p verification remain operator-owned
-external actions.
+The 1920×1080 H.264/AAC v7 master is 208.80 seconds and peaks at -2 dB with no detected black
+frames. The live application segment remains the exact 196.84-second continuous v6 source with zero
+cuts or splices. Two disclosed master edits insert a 12-second Google Cloud Console proof beat after
+the completed product flow and before the architecture walkthrough. At 0:08, the public `.run.app`
+URL appears beside the native Eventarc mission and Pub/Sub message ID. At 2:06, Cloud Run shows
+project `ata-2026-cargo`, controller `cargo-release-controller`, region `us-central1`, and logs
+filtered to the same mission returning `200 OK`. The architecture scene then names the exact Google
+Cloud service at each step. The v7 SHA-256 is
+`7be77bcf201c6a9bac27f682e50437441fb004998bfa9d1d364e859a106ede7d`. Older v2–v6 candidates
+remain preserved; publication and logged-out 1080p verification remain operator-owned external
+actions.
 
 Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
 supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
