@@ -2,8 +2,8 @@
 
 Audit basis: local `main`, anonymous GitHub access, logged-out production, the synchronized
 submission media package, and the verified Alex v7 Console-proof master. Deadline: 2026-08-31
-20:00 EDT. This is not a final all-pass audit because the public blog, social, and Devpost URLs
-remain operator-owned gates.
+20:00 EDT. This is not a final all-pass audit because the public social and Devpost URLs remain
+operator-owned gates.
 
 | Risk order | Gate | Status | Evidence | Fix by |
 |---:|---|---|---|---|
@@ -18,8 +18,9 @@ remain operator-owned gates.
 | 9 | New-project disclosure | **PASS** | The Devpost draft states the August 3–31 build window, standard tooling, and no incorporated pre-existing project code. | — |
 | 10 | Rollback and judging-window health | **PASS** | Serving pair `00023-hay` / `00018-jam`; immediate pair `00021-tac` / `00016-nol` is Ready on immutable images. | Monitor through judging |
 | 11 | Submission documentation consistency | **PASS** | README, checkpoint, Devpost draft, v7 runbook, architecture, bonus-model status, and media filenames share the same v7 and fixture-truth boundary. | — |
-| 12 | Public blog and social bonus | **PARTIAL** | All four body images use raw dev.to upload URLs and return `200`; the public demo URL is embedded. The dedicated cover still needs the dev.to cover control, and the public blog/X URLs remain pending. | Before submission |
-| 13 | Public Devpost project URL | **BLOCKED** | The form draft is paste-ready, but the project URL cannot be recorded until the operator saves or submits it on Devpost. | Before deadline |
+| 12 | Public blog bonus | **PASS** | `https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k` returns `200`. The public API confirms the required purpose sentence, final app/repository/video links, 1000×420 cover, four hosted inline images, and no local image paths. | — |
+| 13 | Public social bonus | **BLOCKED** | The X copy and media are ready, but no public post URL has been supplied or verified. | Before submission |
+| 14 | Public Devpost project URL | **BLOCKED** | The form draft is paste-ready, but the project URL cannot be recorded until the operator saves or submits it on Devpost. | Before deadline |
 
 ## Submission truth boundary
 
@@ -33,6 +34,6 @@ remain operator-owned gates.
 
 ## Final judge-view audit gate
 
-Rerun after the blog/social URLs have replaced their placeholders and the Devpost draft is saved.
+Rerun after the social URL has replaced its placeholder and the Devpost draft is saved.
 Verify every artifact logged out, play `https://youtu.be/mBSkNDSCHJY` at 1080p, compare every claim
 with the deployed app, and freeze the repository, video, and linked artifacts after the deadline.

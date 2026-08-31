@@ -4,6 +4,17 @@ Concise paste-ready draft. Replace fields marked `PENDING` only after the linked
 and verified. The light multimodal build is deployed; its public extraction path remains in
 deterministic `FIXTURE` mode until the separately staged Vertex configuration passes managed proof.
 
+## Project name
+
+`Cargo Release`
+
+## Elevator pitch
+
+An agent fleet coordinates cargo release, while human attestation and independently signed
+receipts—not AI—hold the keys.
+
+Mechanical Unicode count: **121 characters**.
+
 ## Project Story — About the project
 
 ### Inspiration
@@ -78,7 +89,7 @@ Gemma 4, Gemini Embedding 2, Veo 3.1 Fast, Next.js, FastAPI, PostgreSQL, Python,
 | Demo video | https://youtu.be/mBSkNDSCHJY | Public URL supplied by operator |
 | Upstream OSS PR | https://github.com/google/adk-docs/pull/2187 | Open; checks passing |
 | Devpost project page | `PENDING — add after submission is saved/published` | Operator gate |
-| Hackathon blog post | `PENDING — add after publishing and logged-out verification` | Operator gate |
+| Hackathon blog post | https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k | Public; verified logged out |
 | Social post | `PENDING — add after publishing and logged-out verification` | Operator gate |
 
 ## Project Media — Image gallery
@@ -179,9 +190,10 @@ Upload `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-rele
 
 ## Optional bonus — public content
 
-`PENDING — public URL.` Publish-ready local draft: `blog.md`. It states that the article was created
-for the purposes of entering the All Things Agentic Hackathon. Replace this field only after the
-article is public and verified logged out.
+https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k
+
+Verified logged out on 2026-08-31. The public article includes the required event-purpose sentence,
+the final app/repository/video links, a 1000×420 cover, and four hosted inline images.
 
 ## Optional bonus — social post
 
