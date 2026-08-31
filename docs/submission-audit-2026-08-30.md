@@ -8,17 +8,18 @@ remain operator-owned gates.
 | Risk order | Gate | Status | Evidence | Fix by |
 |---:|---|---|---|---|
 | 1 | Exact judge-visible repository | **PASS** | `https://github.com/Zen-cronic/cargo-release` is public. Anonymous requests return `200` for the repository, raw README, MIT license, and architecture PNG. Current and historical commits contain no token-shaped secret or tracked private-key file. | — |
-| 2 | Exact final light/multimodal video | **PASS — operator-confirmed URL** | Alex v7 passes locally at 1920×1080, 208.80 seconds, -2 dB peak, and no detected black frames. Its 196.84-second live application source remains continuous; a disclosed 12-second mission-matched Console insert proves Cloud Run before architecture. Public video: `https://youtu.be/mBSkNDSCHJY`. | — |
+| 2 | Exact final light/multimodal video | **PARTIAL** | Alex v7 passes locally at 1920×1080, 208.80 seconds, -2 dB peak, and no detected black frames. Its 196.84-second live application source remains continuous; a disclosed 12-second mission-matched Console insert proves Cloud Run before architecture. `https://youtu.be/mBSkNDSCHJY` returns `200`, but the operator's logged-out 1080p playback check remains. | Before submission |
 | 3 | Live Vertex visual extraction claim | **BLOCKED** | Zero-traffic Gemini 3.5 candidates produced `NATIVE`, zero-authority degraded receipts and left missions at version 0, but the valid prepared scan returned non-JSON text and never reached deterministic acceptance. Production remains the disclosed fixture path. | 2026-08-31 12:00 EDT decision |
 | 4 | Logged-out hosted app | **PASS** | Public `.run.app` health is `200`, PostgreSQL-backed, light by default, and horizontally stable. | — |
 | 5 | Architecture image | **PASS** | Submission PNG is a 3600×2400 render of the current tracked SVG, including exact service names and the corrected verified-receipt edge. | — |
 | 6 | Gallery media | **PASS** | Two versioned 3:2 PNG derivatives preserve the complete light-theme evidence and quarantine views; originals remain available. | — |
 | 7 | Required Gemini/ADK/GCP stack | **PASS** | Retained managed proof covers Gemini 3.5 Flash, root plus four scoped ADK workers, Cloud Run, Cloud SQL, Pub/Sub/Eventarc, and zero model authority. | — |
-| 8 | Reproducible testing and license | **PASS** | README contains local, browser, PostgreSQL, and managed-probe instructions; GitHub detects the MIT license. | — |
+| 8 | Reproducible testing and license | **PASS** | README contains local, browser, PostgreSQL, and managed-probe instructions; GitHub detects the MIT license. Current rerun: Ruff clean, strict mypy clean across 18 source files, backend 64 passed / 5 skipped, frontend metric and relay tests passed, and TypeScript check passed. | — |
 | 9 | New-project disclosure | **PASS** | The Devpost draft states the August 3–31 build window, standard tooling, and no incorporated pre-existing project code. | — |
 | 10 | Rollback and judging-window health | **PASS** | Serving pair `00023-hay` / `00018-jam`; immediate pair `00021-tac` / `00016-nol` is Ready on immutable images. | Monitor through judging |
 | 11 | Submission documentation consistency | **PASS** | README, checkpoint, Devpost draft, v7 runbook, architecture, bonus-model status, and media filenames share the same v7 and fixture-truth boundary. | — |
-| 12 | Public blog and social bonus | **BLOCKED** | Final local drafts and media exist, but dev.to image/video URLs and public blog/X URLs remain pending. | 2026-08-31 16:00 EDT |
+| 12 | Public blog and social bonus | **PARTIAL** | All four body images use raw dev.to upload URLs and return `200`; the public demo URL is embedded. The dedicated cover still needs the dev.to cover control, and the public blog/X URLs remain pending. | Before submission |
+| 13 | Public Devpost project URL | **BLOCKED** | The form draft is paste-ready, but the project URL cannot be recorded until the operator saves or submits it on Devpost. | Before deadline |
 
 ## Submission truth boundary
 
