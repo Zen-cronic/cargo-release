@@ -1,0 +1,14 @@
+diff --git a/docs/integrations/express-mode.md b/docs/integrations/express-mode.md
+--- a/docs/integrations/express-mode.md
++++ b/docs/integrations/express-mode.md
+@@ -58,4 +58,3 @@ Next, create your Agent Runtime instance using the Agent Platform SDK.
+     ```py
+-    import vertexai
+-    from vertexai import agent_engines
++    import agentplatform
+     ```
+@@ -66,3 +65,3 @@ Next, create your Agent Runtime instance using the Agent Platform SDK.
+     # Create Agent Runtime with Gen AI SDK
+-    client = vertexai.Client(
++    client = agentplatform.Client(
+       api_key="YOUR_API_KEY",
