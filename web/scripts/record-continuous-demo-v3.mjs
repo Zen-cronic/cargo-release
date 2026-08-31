@@ -12,7 +12,7 @@ const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mil
 
 const requiredApproval = "I_APPROVE_ONE_CONTINUOUS_SYNTHETIC_RECORDING";
 if (process.env.CARGO_RELEASE_CONTINUOUS_RECORDING_APPROVED !== requiredApproval) {
-  console.error("V3 recording not started.");
+  console.error("Continuous recording not started.");
   console.error("This publishes one marked synthetic Eventarc mission, records one operator attestation, and sends at most one marked Slack notice.");
   console.error(`Set CARGO_RELEASE_CONTINUOUS_RECORDING_APPROVED=${requiredApproval} to authorize it.`);
   process.exit(3);
@@ -21,8 +21,9 @@ if (process.env.CARGO_RELEASE_CONTINUOUS_RECORDING_APPROVED !== requiredApproval
 const appUrl = (process.env.APP_URL ??
   "https://cargo-release-web-1015646664425.us-central1.run.app").replace(/\/$/, "");
 const demoEdition = process.env.CARGO_RELEASE_DEMO_EDITION ?? "v3";
-const expandedNarrative = demoEdition === "v4" || demoEdition === "v5";
-const exactServiceWalkthrough = demoEdition === "v5";
+const expandedNarrative = ["v4", "v5", "v6"].includes(demoEdition);
+const exactServiceWalkthrough = demoEdition === "v5" || demoEdition === "v6";
+const explicitCloudRunUrlProof = demoEdition === "v6";
 const architectureAssetRef = "repository://docs/architecture.svg";
 const architectureSvg = expandedNarrative
   ? await readFile(path.resolve("../docs/architecture.svg"), "utf8")
@@ -41,7 +42,7 @@ const slackReadyPath = path.resolve(
   process.env.SLACK_RECORDING_READY ?? "../.playwright-mcp/slack-recording-profile-ready.json",
 );
 if (!chromeUserDataDir || !chromeProfile) {
-  throw new Error("V3 requires SLACK_CHROME_USER_DATA_DIR and SLACK_CHROME_PROFILE_DIRECTORY so the real channel—not a reconstruction—is recorded");
+  throw new Error("Continuous recording requires SLACK_CHROME_USER_DATA_DIR and SLACK_CHROME_PROFILE_DIRECTORY so the real channel—not a reconstruction—is recorded");
 }
 
 const outputDirectory = path.resolve(
@@ -162,12 +163,13 @@ async function showCaption(page, text, tone = "blue") {
     element.querySelector("span").textContent = caption;
     element.style.cssText = [
       "position:fixed", "bottom:42px", "left:50%", "transform:translateX(-50%)",
-      "z-index:2147483647", "max-width:1240px", "display:flex", "align-items:center",
+      "z-index:2147483647", "max-width:1500px", "display:flex", "align-items:center",
       "gap:14px", "padding:13px 20px", `border:1px solid ${palette.border}`,
-      "border-radius:999px", "background:rgba(255,255,255,.97)",
+      caption.includes("\n") ? "border-radius:18px" : "border-radius:999px",
+      "background:rgba(255,255,255,.97)",
       "box-shadow:0 14px 38px rgba(38,74,112,.18)", `color:${palette.text}`,
       "font:650 21px/1.3 Arial,sans-serif", "letter-spacing:.005em", "text-align:left",
-      "pointer-events:none",
+      "white-space:pre-line", "pointer-events:none",
     ].join(";");
     const dot = element.querySelector("i");
     dot.style.cssText = [
@@ -311,8 +313,10 @@ try {
   await holdBeat(
     page,
     "B1 native Eventarc provenance",
-    `LIVE CLOUD RUN · Native Eventarc mission ${missionId} · message ${messageId}`,
-    4_500,
+    explicitCloudRunUrlProof
+      ? `${appUrl}\nLIVE CLOUD RUN · Native Eventarc mission ${missionId} · message ${messageId}`
+      : `LIVE CLOUD RUN · Native Eventarc mission ${missionId} · message ${messageId}`,
+    explicitCloudRunUrlProof ? 6_500 : 4_500,
     "live",
   );
 
@@ -575,6 +579,9 @@ const report = {
   slack_channel_url: slackChannelUrl,
   slack_proof_url: slackProofUrl,
   demo_edition: demoEdition,
+  cloud_run_proof: explicitCloudRunUrlProof
+    ? { url: appUrl, beat: "B1 native Eventarc provenance", message_id: messageId }
+    : null,
   architecture_asset_ref: expandedNarrative ? architectureAssetRef : null,
   started_at: new Date(startedAt).toISOString(),
   finished_at: new Date().toISOString(),

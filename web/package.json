@@ -14,6 +14,7 @@
     "record:continuous:v3": "node scripts/record-continuous-demo-v3.mjs",
     "record:continuous:v4": "CARGO_RELEASE_DEMO_EDITION=v4 RECORDING_OUTPUT=../.playwright-mcp/continuous-demo-alex-v4 RECORDING_STEM=cargo-release-expanded-v4-source node scripts/record-continuous-demo-v3.mjs",
     "record:continuous:v5": "CARGO_RELEASE_DEMO_EDITION=v5 RECORDING_OUTPUT=../.playwright-mcp/continuous-demo-alex-v5 RECORDING_STEM=cargo-release-services-v5-source node scripts/record-continuous-demo-v3.mjs",
+    "record:continuous:v6": "CARGO_RELEASE_DEMO_EDITION=v6 RECORDING_OUTPUT=../.playwright-mcp/continuous-demo-alex-v6 RECORDING_STEM=cargo-release-cloud-proof-v6-source node scripts/record-continuous-demo-v3.mjs",
     "prepare:slack-recording": "node scripts/open-slack-recording-profile.mjs",
     "rehearse:production": "node scripts/rehearse-production.mjs",
     "test:relay": "node --test tests/relay-policy.test.ts",

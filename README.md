@@ -5,11 +5,11 @@ released after a General Average casualty without letting an AI become the insur
 carrier.**
 
 [Open the live Google Cloud deployment](https://cargo-release-web-1015646664425.us-central1.run.app)
-· [Inspect the Alex v5 proof mission](https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-10cacbb95bb8)
+· [Inspect the Alex v6 proof mission](https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-13820650dbee)
 
 | Submission artifact | Link |
 |---|---|
-| Demo video | `PENDING — replace with the public Alex v5 YouTube or Vimeo URL` |
+| Demo video | `PENDING — replace with the public Alex v6 YouTube or Vimeo URL` |
 | Hackathon blog post | `PENDING — replace with the public post URL` |
 | Social post | `PENDING — replace with the public #AllThingsAgentic post URL` |
 | Upstream OSS contribution | `PENDING — replace only after the ADK documentation PR is filed and verified` |
@@ -97,11 +97,11 @@ The diagram is intentionally an authority map, not a logo inventory:
 | Hero technology | Load-bearing role | Managed proof | Authority boundary |
 |---|---|---|---|
 | Vertex AI Agent Runtime + Gemini 3.5 Flash + Google ADK | One coordinator delegates to four separately scoped inspection workers | Managed invocation `e-3277014e-be11-4945-acc9-658e1c0bbbb6` | Workers are read-only and always return `release_authority=false` |
-| Pub/Sub + Eventarc | Authenticated casualty ingress with native event and trace identifiers; duplicate delivery converges on one mission | Alex v5 message `21112082963927642` and mission `mission-10cacbb95bb8` | Opening a mission cannot attest or release cargo |
+| Pub/Sub + Eventarc | Authenticated casualty ingress with native event and trace identifiers; duplicate delivery converges on one mission | Alex v6 message `21614781193876288` and mission `mission-13820650dbee` | Opening a mission cannot attest or release cargo |
 | Private Cloud Run controller + Cloud SQL PostgreSQL 16 | The sole deterministic state writer evaluates versions, leases, validated evidence, human attestation, and signed receipts | Production health reports PostgreSQL; replay and concurrency acceptance tests pass | No model, browser, memory entry, or notification can write release state |
-| Three identity-isolated Cloud Run partner services | Insurer, adjuster, and carrier independently issue issuer-bound, replay-safe receipts | Five verified receipts plus carrier read-back are retained in the v5 mission | A receipt advances only from an allowed prior state with a valid signature |
+| Three identity-isolated Cloud Run partner services | Insurer, adjuster, and carrier independently issue issuer-bound, replay-safe receipts | Five verified receipts plus carrier read-back are retained in the v6 mission | A receipt advances only from an allowed prior state with a valid signature |
 | Agent Identity, Agent Gateway, Registry, Model Armor, Memory Bank, Logging, and Trace | Govern egress, sanitize untrusted input, retain reviewed facts, and expose provenance | Truth-labelled managed resources and hash-linked mission activity | Cross-cutting controls observe or constrain the workflow; none authorize release |
-| Secret Manager + marked Slack delivery | Protect the operator webhook and prove the post-read-back consequence | The v5 take shows the mission-matched message in the authenticated channel | Notification occurs after release and has `release_authority=false` |
+| Secret Manager + marked Slack delivery | Protect the operator webhook and prove the post-read-back consequence | The v6 take shows the mission-matched message in the authenticated channel | Notification occurs after release and has `release_authority=false` |
 
 ### ADK agent roster
 
@@ -130,7 +130,7 @@ governed Agent Runtime remains in `us-central1`. The source fails closed if conf
 3.5.
 
 The same Gemini family has a staged visual-intake adapter that extracts a typed
-`adjuster-rejection-v1` record from the prepared PNG. The public deployment and Alex v5 demo use
+`adjuster-rejection-v1` record from the prepared PNG. The public deployment and Alex v6 demo use
 the explicitly labelled deterministic extraction fixture because the managed adapter's valid-scan
 attempt returned malformed structured output and correctly failed closed. In either mode,
 deterministic validation—not model prose—must accept every expected field and confidence ≥ 0.85
@@ -282,20 +282,22 @@ PostgreSQL health, promoted web, and passed canonical relay results `200/404/400
 traffic/image audit confirmed both serving revisions and both rollback revisions Ready on immutable
 digests.
 
-The current Alex v5 continuous Proof-of-Action candidate published Pub/Sub message
-`21112082963927642` and recorded mission `mission-10cacbb95bb8` from native Eventarc intake through
+The current Alex v6 continuous Proof-of-Action candidate published Pub/Sub message
+`21614781193876288` and recorded mission `mission-13820650dbee` from native Eventarc intake through
 one owner attestation, the retained adjuster rejection and correction, five verified receipts,
 carrier read-back, and a marked Slack delivery. Final state is physical cargo `RELEASED`, General
 Average adjustment `OPEN`, and run `COMPLETED`; visual extraction is truth-labelled
 `FIXTURE` / `ACCEPTED`.
 
-The 1920×1080 H.264/AAC master is 192.56 seconds, contains one continuous source with zero cuts or
+The 1920×1080 H.264/AAC master is 196.84 seconds, contains one continuous source with zero cuts or
 splices, has no detected black frames, uses Alex voice `17bSMslPF4HPyQrGIXAG`, and peaks at -2 dB.
 Its source SHA-256 is
-`310f3d08055a73b9008a6791b990fa2c86520a857e399d9b788a7abf4384b321`; the master SHA-256 is
-`e102c1152bd4987de8fdada69aa848e323a0f7bf2541f3968445330503fab8e8`. The architecture scene names
-the exact Google Cloud service at each step. Older v2–v4 candidates remain preserved; publication
-and logged-out 1080p verification remain operator-owned external actions.
+`c782a17507276a97a37ce23dc3bb9036cde6a01cf7b6bc64c7baf720c58180d3`; the master SHA-256 is
+`7f32ab30d967da83571fad6b9f7dc487942d28094ec62fbeabc0f871217fe6c2`. At 0:08, the video visibly
+shows the exact public `.run.app` URL beside its fresh native Eventarc mission and Pub/Sub message
+ID. The architecture scene then names the exact Google Cloud service at each step. Older v2–v5
+candidates remain preserved; publication and logged-out 1080p verification remain operator-owned
+external actions.
 
 Deployment helpers are under `deploy/`. They default to zero-traffic or fail-closed staging where
 supported and retain rollback revisions. Do not run the Slack configurator in a transcript: it uses
