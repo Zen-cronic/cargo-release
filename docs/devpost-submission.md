@@ -159,5 +159,6 @@ article is public and verified logged out.
 
 ## Upstream OSS contribution
 
-`PENDING — verified public ADK documentation PR URL after the draft is tested and filed.` Do not
-describe the contribution as filed, accepted, or merged until GitHub shows that state.
+[google/adk-docs#2187](https://github.com/google/adk-docs/pull/2187) — open documentation PR,
+verified publicly on 2026-08-31. Google CLA completion is pending; do not describe it as accepted or
+merged unless GitHub shows that state.

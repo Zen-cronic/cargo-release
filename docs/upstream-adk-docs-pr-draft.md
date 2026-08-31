@@ -1,18 +1,13 @@
-# Prepared upstream contribution — ADK Express Mode client migration
+# Upstream contribution — ADK Express Mode client migration
 
-**Status:** READY TO FILE MANUALLY — neither issue nor PR has been opened
+**Status:** [PR #2187 OPEN](https://github.com/google/adk-docs/pull/2187) — Google CLA pending
 **Target:** [`google/adk-docs`](https://github.com/google/adk-docs)
 **Observed:** 2026-08-31 at ADK docs commit
 `1203686bb4a30351393d3bccea06abd91f008e19`
 **Verified SDK:** `google-cloud-aiplatform[agent_engines]==1.165.1`
 
-Choose one route:
-
-1. Prefer the PR after applying the prepared patch and rerunning the verification.
-2. Use the issue instead if you do not want to propose a code change or a maintainer asks for an
-   issue first.
-
-Do not file both independently. If an issue is opened first, make the PR link and close that issue.
+The verified patch was filed as PR #2187. The fallback issue below was deliberately not opened,
+because filing both artifacts would duplicate the same actionable fix.
 
 ## Finding
 
@@ -136,16 +131,12 @@ PR #2019 updates installation extras and a link later in this page. It does not 
 constructor, so this is a separate correction.
 ````
 
-### Manual PR URL
+### Filed PR
 
-After you fork `google/adk-docs`, create branch `docs/express-mode-agentplatform`, apply the patch,
-commit, and push it, open:
-
-<https://github.com/google/adk-docs/compare/main...Zen-cronic:docs/express-mode-agentplatform?expand=1>
-
-The link will not become an actionable comparison until that fork branch exists. Opening the form
-does not submit the PR; review the title, body, diff, and base branch before pressing **Create pull
-request**.
+- PR: <https://github.com/google/adk-docs/pull/2187>
+- Fork branch: <https://github.com/Zen-cronic/adk-docs/tree/docs/express-mode-agentplatform>
+- Commit: <https://github.com/google/adk-docs/pull/2187/commits/50f02aa94efa570740d15e2bfe5236a0613f5b3b>
+- Current state at filing: open and mergeable; Google CLA check pending operator completion.
 
 ## Prepared fallback issue
 
@@ -219,13 +210,14 @@ and submit manually. Merely opening this link does not create an issue.
 
 ## Operator filing checklist
 
-- [ ] Pull current `google/adk-docs/main` and record its SHA.
-- [ ] Confirm the target lines still use `vertexai.Client`.
-- [ ] Confirm PR #2019 or a newer PR has not migrated those exact lines.
-- [ ] Reinstall or verify `google-cloud-aiplatform[agent_engines]==1.165.1` in a disposable env.
-- [ ] Apply the patch and rerun the warning/property check.
-- [ ] Run the repository's documented Markdown/MkDocs checks.
-- [ ] Prefer the PR; use the fallback issue only if the patch cannot be validated.
-- [ ] File manually under the operator's GitHub identity.
-- [ ] Copy the real issue or PR URL into Devpost/README only after GitHub shows it exists.
-- [ ] Describe the state as `open`, never `accepted` or `merged` unless GitHub proves that state.
+- [x] Pull current `google/adk-docs/main` and record its SHA.
+- [x] Confirm the target lines still use `vertexai.Client`.
+- [x] Confirm PR #2019 or a newer PR has not migrated those exact lines.
+- [x] Reinstall or verify `google-cloud-aiplatform[agent_engines]==1.165.1` in a disposable env.
+- [x] Apply the patch and rerun the warning/property check.
+- [x] Run the repository's documented Markdown/MkDocs checks.
+- [x] Prefer the PR; do not file the duplicate fallback issue.
+- [x] File under the operator's GitHub identity.
+- [x] Copy the real PR URL into Devpost/README after GitHub shows it exists.
+- [ ] Complete the Google CLA and confirm the check reruns successfully.
+- [x] Describe the state as `open`, never `accepted` or `merged` unless GitHub proves that state.
