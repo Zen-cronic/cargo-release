@@ -88,11 +88,28 @@ Gemma 4, Gemini Embedding 2, Veo 3.1 Fast, Next.js, FastAPI, PostgreSQL, Python,
 | Source repository | https://github.com/Zen-cronic/cargo-release | Public |
 | Demo video | https://youtu.be/mBSkNDSCHJY | Public URL supplied by operator |
 | Upstream OSS PR | https://github.com/google/adk-docs/pull/2187 | Open; checks passing |
-| Devpost project page | `PENDING — add after submission is saved/published` | Operator gate |
+| Devpost project page | https://devpost.com/software/cargo-release | URL recorded; logged-out request currently resolves to Devpost login |
 | Hackathon blog post | https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k | Public; verified logged out |
 | Social post | `PENDING — add after publishing and logged-out verification` | Operator gate |
 
 ## Project Media — Image gallery
+
+### Project thumbnail — Project Overview
+
+Upload this first:
+
+`/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/gallery/cargo-release-devpost-thumbnail-3x2-crop.jpg`
+
+- 1800×1200 JPG, exact 3:2 ratio, 277,473 bytes.
+- Preserves the project name, thesis, container, two-key path, and `1 → 8/8` consequence at card size.
+- PNG fallback: `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/gallery/cargo-release-devpost-thumbnail-3x2-crop.png` (1800×1200, 2,827,135 bytes).
+- The original 1920×1080 YouTube thumbnail remains preserved and unchanged.
+
+If Devpost still rejects the JPG, reload **Project Overview**, choose the file from disk rather than
+dragging the chat image, and save that step before continuing. Both derivatives meet Devpost's
+JPG/PNG, 5 MB, recommended-3:2 requirements.
+
+### Image gallery
 
 Upload in this order; every image is PNG and under 5 MB. Caption counts use Unicode code points and
 are all below the 140-character limit.

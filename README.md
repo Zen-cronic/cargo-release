@@ -9,6 +9,7 @@ carrier.**
 
 | Submission artifact | Link |
 |---|---|
+| Devpost submission | [Cargo Release](https://devpost.com/software/cargo-release) — URL recorded; logged-out verification pending |
 | Demo video | [Cargo Release — All Things Agentic Hackathon](https://youtu.be/mBSkNDSCHJY) |
 | Hackathon blog post | [I Built an AI Cargo Fleet That Never Holds the Key](https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k) |
 | Social post | `PENDING — replace with the public #AllThingsAgentic post URL` |
