@@ -54,6 +54,16 @@ injection fail closed without making the demo unreadable.
 - Five issuer-bound receipts and a two-key rule—not model prose—open the container.
 - Every transition remains reconstructable from Cloud SQL state, hashes, identities, and traces.
 
+### Upstream contribution
+
+Building Cargo Release surfaced a documentation defect in Google ADK's Express Mode guide: the
+published example constructs deprecated `vertexai.Client`, which emits a `FutureWarning` with
+`google-cloud-aiplatform[agent_engines]` 1.165.1. We verified that `agentplatform.Client` removes
+the warning while retaining the released `client.agent_engines` API, then submitted a narrow docs
+fix validated by `mkdocs build --strict`. The PR is open, mergeable, and passing Google CLA,
+header, and change checks as of August 31, 2026:
+[google/adk-docs#2187](https://github.com/google/adk-docs/pull/2187).
+
 ### What we learned
 
 Agent autonomy is more credible when its limits are visible. Structured model receipts,
