@@ -25,6 +25,7 @@ docs/*
 !docs/submission-audit-2026-08-30.md
 !docs/upstream-adk-docs-pr-draft.md
 !docs/adk-docs-express-mode-agentplatform.patch
+!docs/youtube-upload-handoff.md
 BUILD_CHECKPOINT.md
 DESIGN_BRIEF.md
 var/

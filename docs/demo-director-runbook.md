@@ -1,6 +1,6 @@
 # Cargo Release — demo director runbook
 
-Status: `LIGHT_ALEX_V7_CONSOLE_PROOF_VERIFIED_FIXTURE_TRUTH_LABELLED_UPLOAD_PENDING`
+Status: `LIGHT_ALEX_V7_PUBLIC_FIXTURE_TRUTH_LABELLED`
 
 This runbook now targets the multimodal candidate: a digest-bound synthetic adjuster scan selects
 security-pack revision two after deterministic validation, while a hostile email is quarantined.
@@ -44,7 +44,9 @@ retained managed take must not be presented as proof of the new Vertex visual pa
    `CARGO_RELEASE_MULTIMODAL_MODE=VERTEX`; prove the valid scan changes v2 and ambiguous evidence
    fails closed before recording that path as managed Gemini proof.
 
-Managed multimodal proof, public source access, public upload, and submission remain gates.
+Managed multimodal proof remains a deliberately unclaimed stretch. Final Devpost submission and
+publication of the optional blog/social artifacts remain operator gates. Public demo:
+https://youtu.be/mBSkNDSCHJY
 
 ## Recorded Dan v2 candidate — 2026-08-30
 
@@ -318,12 +320,12 @@ The final recording must not claim:
 ## Upload and compliance gate
 
 - Title: `Cargo Release - All Things Agentic Hackathon`.
-- Host publicly on YouTube or Vimeo; mark YouTube “Not made for Kids.”
+- Public YouTube URL: https://youtu.be/mBSkNDSCHJY. Mark YouTube “Not made for Kids.”
 - Description: one-line thesis, live URL, repository URL, fictional/synthetic-data disclosure, and
   the sentence: “This video was created for the purposes of entering the All Things Agentic
   Hackathon.”
 - Use no copyrighted music or third-party logos/assets. The Mobbin research informed hierarchy only;
   no reference asset appears in the product or video.
 - Verify public playback in a logged-out browser, at 1080p, before pasting the URL into Devpost.
-- Upload early; recording, publication, repository publication, and final submission remain human
-  gates.
+- Repository and video publication are complete. Optional blog/social publication and final
+  Devpost submission remain human gates.

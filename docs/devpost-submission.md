@@ -56,10 +56,9 @@ receipt contract, and extend the open adjustment monitor without expanding model
 
 ## Built with
 
-`Gemini 3.5 Flash` · `Google ADK` · `Vertex AI Agent Runtime` · `Cloud Run` · `Cloud SQL` ·
-`Pub/Sub` · `Eventarc` · `Agent Gateway` · `Agent Identity` · `Agent Registry` · `Model Armor` ·
-`Cloud Trace` · `Cloud Logging` · `Memory Bank` · `Gemma 4` · `Gemini Embedding 2` · `Veo 3.1` ·
-`Next.js` · `FastAPI` · `PostgreSQL` · `Python` · `TypeScript`
+Gemini 3.5 Flash, Google ADK, Vertex AI Agent Runtime, Cloud Run, Cloud SQL, Pub/Sub, Eventarc,
+Agent Gateway, Agent Identity, Agent Registry, Model Armor, Cloud Trace, Cloud Logging, Memory Bank,
+Gemma 4, Gemini Embedding 2, Veo 3.1 Fast, Next.js, FastAPI, PostgreSQL, Python, TypeScript
 
 22 tags; Devpost allows 25.
 
@@ -69,21 +68,41 @@ receipt contract, and extend the open adjustment monitor without expanding model
 - Code: https://github.com/Zen-cronic/cargo-release
 - Alex v7 proof mission: https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-13820650dbee
 
+## Public artifact links
+
+| Artifact | Exact URL | Status |
+|---|---|---|
+| Hosted app | https://cargo-release-web-1015646664425.us-central1.run.app | Public |
+| Proof mission | https://cargo-release-web-1015646664425.us-central1.run.app/?mission=mission-13820650dbee | Public |
+| Source repository | https://github.com/Zen-cronic/cargo-release | Public |
+| Demo video | https://youtu.be/mBSkNDSCHJY | Public URL supplied by operator |
+| Upstream OSS PR | https://github.com/google/adk-docs/pull/2187 | Open; checks passing |
+| Devpost project page | `PENDING — add after submission is saved/published` | Operator gate |
+| Hackathon blog post | `PENDING — add after publishing and logged-out verification` | Operator gate |
+| Social post | `PENDING — add after publishing and logged-out verification` | Operator gate |
+
 ## Project Media — Image gallery
 
-Upload in this order; every image is PNG and under 5 MB.
+Upload in this order; every image is PNG and under 5 MB. Caption counts use Unicode code points and
+are all below the 140-character limit.
 
-1. `architecture.png` — four spacious authority groups, two exception arcs, and the trust plane.
-2. `gallery/multimodal-correction-3x2.png` — scan, validated extraction, digest,
-   and exact v2 correction in one frame.
-3. `gallery/quarantined-email-3x2.png` — hostile text quarantined while cargo is
-   still held.
+1. `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/architecture.png`
+
+   Caption (127 characters): Authority map: authenticated intake, four scoped ADK workers, one Cloud SQL writer, independent receipts, and physical release.
+2. `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/gallery/multimodal-correction-3x2.png`
+
+   Caption (123 characters): A validated rejection scan causes security-pack v2 while hostile email text is quarantined and cannot change trusted state.
+3. `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/gallery/quarantined-email-3x2.png`
+
+   Caption (114 characters): Prompt-injection email quarantined with zero facts, memory, or transitions while the synthetic cargo remains HELD.
 
 ## Video demo link
 
-`PENDING — public YouTube or Vimeo URL for the verified 208.80-second Alex v7 take. Its full live
-application execution remains continuous and unedited; a disclosed 12-second, mission-matched Cloud
-Run console proof follows the product flow before architecture.`
+https://youtu.be/mBSkNDSCHJY
+
+The verified Alex v7 master is 208.80 seconds at 1920×1080. Its full live application execution
+remains continuous and unedited; a disclosed 12-second, mission-matched Cloud Run Console proof
+follows the product flow before the architecture walkthrough.
 
 ## Category
 
@@ -114,37 +133,49 @@ https://cargo-release-web-1015646664425.us-central1.run.app
 
 ## Testing instructions (judge-only)
 
-No login is required. Open the app and click **Start autonomous mission**. Inspect **Evidence** to
-compare the validated scan with the quarantined email. Click **Approve bond & resume** once. Then
-inspect security-pack v1/v2, five receipts, `RELEASED` with adjustment `OPEN`, and the **Authority
-Map**. All parties and cargo data are synthetic. The public workflow currently uses the disclosed
-deterministic visual-extraction fixture; the same digest- and schema-bound Vertex adapter is pending
-its final managed activation proof.
+No login. Start autonomous mission; compare the validated scan with the quarantined email; approve
+the bond once; verify RELEASED while adjustment stays OPEN; inspect receipts and the Authority Map.
+All data is synthetic; extraction is FIXTURE.
+
+Mechanical Unicode count: **244 characters** (255-character field limit).
 
 ## Which Google SDK did you use?
 
-**ADK.** The coordinator and four scoped workers use Google Agent Development Kit. The visual
-Gemini call uses the Vertex AI REST API, so do not tick Google GenAI SDK unless that adapter changes.
+| Form option | Select? | Evidence boundary |
+|---|---:|---|
+| ADK | **Yes** | Coordinator and four scoped workers import and use Google ADK. |
+| Google GenAI SDK | **No** | No direct production-runtime use; the staged visual adapter calls Vertex AI REST. |
+| Antigravity SDK | **No** | Not used. |
+| Genkit | **No** | Not used. |
+| Other | **No** | Vertex REST is transport, not another agent SDK. |
 
 ## Which Google Cloud Service(s) did you use?
 
-Tick **Cloud Run**, **Cloud SQL**, and **Pub/Sub**. Also name Eventarc, Vertex AI Agent Runtime,
-Cloud Trace/Logging, Secret Manager, Agent Gateway/Identity/Registry, Model Armor, and Memory Bank
-where the form permits free text.
+| Form option | Select? |
+|---|---:|
+| Cloud Run | **Yes** |
+| Cloud SQL | **Yes** |
+| Pub/Sub | **Yes** |
+| Firestore | **No** |
+| Google Kubernetes Engine | **No** |
+
+If free text is available, also name Eventarc, Vertex AI Agent Runtime, Cloud Trace, Cloud Logging,
+Secret Manager, Agent Gateway, Agent Identity, Agent Registry, Model Armor, and Memory Bank.
 
 ## Architecture diagram
 
-Upload `architecture.png` from the submission package (PNG, 3600×2400, under 5 MB). Editable source:
-`docs/architecture.svg`.
+Upload `/home/zin-kg/code/hackathons/allthingsagentic-2026/submission/cargo-release/architecture.png`
+(PNG, 3600×2400, under 5 MB). Editable source: `docs/architecture.svg`.
 
 ## Which Google AI Models did you use?
 
-- **Gemini 3.5 Flash:** required managed ADK coordinator. A separate visual adapter is staged; the
+- **Select Gemini 3.5 Flash:** required managed ADK coordinator. A separate visual adapter is staged; the
   public demo uses the disclosed deterministic extraction fixture after managed malformed output
   correctly failed closed.
-- **Gemma 4:** sanitized proposal critic, no tools or authority.
-- **Gemini Embedding 2:** rank-only retrieval over reviewed synthetic cases.
-- **Veo 3.1 Fast:** post-release synthetic training replay, never evidence.
+- **Select Gemma 4:** sanitized proposal critic, no tools or authority.
+- **Select Gemini Embedding 2:** rank-only retrieval over reviewed synthetic cases.
+- **Select Veo 3.1 Fast:** post-release synthetic training replay, never evidence.
+- **Do not select Lyria:** not used.
 
 ## Optional bonus — public content
 
