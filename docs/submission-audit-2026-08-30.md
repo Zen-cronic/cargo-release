@@ -2,8 +2,8 @@
 
 Audit basis: local `main`, anonymous GitHub access, logged-out production, the synchronized
 submission media package, and the verified Alex v7 Console-proof master. Deadline: 2026-08-31
-20:00 EDT. This is not a final all-pass audit because the public social and Devpost URLs remain
-operator-owned gates.
+20:00 EDT. This is not a final all-pass audit because the corrected public blog paste, logged-out
+YouTube 1080p check, and final Devpost submitted state remain operator-owned gates.
 
 | Risk order | Gate | Status | Evidence | Fix by |
 |---:|---|---|---|---|
@@ -19,7 +19,7 @@ operator-owned gates.
 | 10 | Rollback and judging-window health | **PASS** | Serving pair `00023-hay` / `00018-jam`; immediate pair `00021-tac` / `00016-nol` is Ready on immutable images. | Monitor through judging |
 | 11 | Submission documentation consistency | **PASS** | README, checkpoint, Devpost draft, v7 runbook, architecture, bonus-model status, and media filenames share the same v7 and fixture-truth boundary. | — |
 | 12 | Public blog bonus | **PARTIAL** | `https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k` returns `200`; purpose language, final links, cover, and four images pass. Dev.to rendered 84 hard `<br>` tags across 44 prose paragraphs from source wrapping. The synchronized local source is mechanically unwrapped and ready to repaste. | Before submission |
-| 13 | Public social bonus | **BLOCKED** | The X copy and media are ready, but no public post URL has been supplied or verified. | Before submission |
+| 13 | Public social bonus | **PASS** | `https://x.com/zinheinkg/status/2094567764543316333` is public and was verified through X's canonical embed endpoint on 2026-08-31. The post names the receipt-gated consequence, links Devpost, and includes `#AllThingsAgentic Hackathon`. | — |
 | 14 | Public Devpost project URL | **PARTIAL** | `https://devpost.com/software/cargo-release` is recorded, but a logged-out request currently resolves to Devpost's login page. Confirm **My Projects** shows the green **Submitted** state; final public visibility may still depend on organizer moderation/gallery publication. | Before deadline |
 
 ## Submission truth boundary
@@ -34,7 +34,7 @@ operator-owned gates.
 
 ## Final judge-view audit gate
 
-Rerun after the social URL has replaced its placeholder and Devpost shows the green **Submitted**
-state.
+Rerun after the corrected blog source is republished, YouTube playback is confirmed at 1080p while
+logged out, and Devpost shows the green **Submitted** state.
 Verify every artifact logged out, play `https://youtu.be/mBSkNDSCHJY` at 1080p, compare every claim
 with the deployed app, and freeze the repository, video, and linked artifacts after the deadline.

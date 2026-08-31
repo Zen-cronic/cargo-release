@@ -45,7 +45,8 @@ retained managed take must not be presented as proof of the new Vertex visual pa
    fails closed before recording that path as managed Gemini proof.
 
 Managed multimodal proof remains a deliberately unclaimed stretch. Final Devpost submission and
-publication of the optional blog/social artifacts remain operator gates. Public demo:
+final Devpost submission and verification of the corrected blog paste remain operator gates. The
+blog and social artifacts are public. Public demo:
 https://youtu.be/mBSkNDSCHJY
 
 ## Recorded Dan v2 candidate — 2026-08-30
@@ -327,5 +328,5 @@ The final recording must not claim:
 - Use no copyrighted music or third-party logos/assets. The Mobbin research informed hierarchy only;
   no reference asset appears in the product or video.
 - Verify public playback in a logged-out browser, at 1080p, before pasting the URL into Devpost.
-- Repository and video publication are complete. Optional blog/social publication and final
-  Devpost submission remain human gates.
+- Repository, video, blog, and social publication are complete. The corrected blog repaste,
+  logged-out YouTube 1080p check, and final Devpost submission remain human gates.

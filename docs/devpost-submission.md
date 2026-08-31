@@ -100,7 +100,7 @@ Gemma 4, Gemini Embedding 2, Veo 3.1 Fast, Next.js, FastAPI, PostgreSQL, Python,
 | Upstream OSS PR | https://github.com/google/adk-docs/pull/2187 | Open; checks passing |
 | Devpost project page | https://devpost.com/software/cargo-release | URL recorded; logged-out request currently resolves to Devpost login |
 | Hackathon blog post | https://dev.to/zin_kg/i-built-an-ai-cargo-fleet-that-never-holds-the-key-474k | Public; verified logged out |
-| Social post | `PENDING — add after publishing and logged-out verification` | Operator gate |
+| Social post | https://x.com/zinheinkg/status/2094567764543316333 | Public; verified through X's canonical embed endpoint on 2026-08-31 |
 
 ## Project Media — Image gallery
 
@@ -224,8 +224,10 @@ the final app/repository/video links, a 1000×420 cover, and four hosted inline 
 
 ## Optional bonus — social post
 
-`PENDING — public X URL.` Character-budgeted local draft: `social.md`; it contains
-`#AllThingsAgentic Hackathon`. Replace this field only after the post and attached media are public.
+https://x.com/zinheinkg/status/2094567764543316333
+
+Verified through X's canonical public embed endpoint on 2026-08-31. The published post contains
+`#AllThingsAgentic Hackathon`, names the receipt-gated consequence, and links to the Devpost page.
 
 ## Upstream OSS contribution
 
